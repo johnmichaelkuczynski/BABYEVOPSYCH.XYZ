@@ -485,6 +485,7 @@ export type ReasoningItemType = typeof ReasoningItemType[keyof typeof ReasoningI
 export const ReasoningItemType = {
   dilemma: 'dilemma',
   mcq: 'mcq',
+  short_answer: 'short_answer',
 } as const;
 
 export interface ReasoningItem {
@@ -497,6 +498,11 @@ export interface ReasoningItem {
      * @nullable
      */
   options?: string[] | null;
+  /**
+     * For hybrid-format mcq items — when true, an optional short written note accompanies the choice.
+     * @nullable
+     */
+  allowNote?: boolean | null;
   /**
      * For dilemma items — the possible decisions on the scenario.
      * @nullable
@@ -552,6 +558,19 @@ export const ReasoningAttemptStateStatus = {
   submitted: 'submitted',
 } as const;
 
+/**
+ * The response format chosen for this attempt.
+ * @nullable
+ */
+export type ReasoningAttemptStateFormat = typeof ReasoningAttemptStateFormat[keyof typeof ReasoningAttemptStateFormat] | null;
+
+
+export const ReasoningAttemptStateFormat = {
+  mc: 'mc',
+  hybrid: 'hybrid',
+  written: 'written',
+} as const;
+
 export interface ReasoningMetric {
   label: string;
   value: string;
@@ -565,6 +584,20 @@ export type ReasoningReviewItemType = typeof ReasoningReviewItemType[keyof typeo
 export const ReasoningReviewItemType = {
   dilemma: 'dilemma',
   mcq: 'mcq',
+  short_answer: 'short_answer',
+} as const;
+
+/**
+ * short_answer — the grader's verdict on the written response.
+ * @nullable
+ */
+export type ReasoningReviewItemVerdict = typeof ReasoningReviewItemVerdict[keyof typeof ReasoningReviewItemVerdict] | null;
+
+
+export const ReasoningReviewItemVerdict = {
+  correct: 'correct',
+  partial: 'partial',
+  incorrect: 'incorrect',
 } as const;
 
 export interface ReasoningReviewItem {
@@ -587,10 +620,35 @@ export interface ReasoningReviewItem {
      */
   correctIndex?: number | null;
   /**
-     * mcq — whether the student's choice was correct.
+     * mcq/short_answer — whether the student's answer was judged correct.
      * @nullable
      */
   isCorrect?: boolean | null;
+  /**
+     * hybrid mcq — the optional justification the student wrote.
+     * @nullable
+     */
+  note?: string | null;
+  /**
+     * short_answer — the student's written response.
+     * @nullable
+     */
+  text?: string | null;
+  /**
+     * short_answer — a model answer the response was graded against.
+     * @nullable
+     */
+  referenceAnswer?: string | null;
+  /**
+     * short_answer — the grader's verdict on the written response.
+     * @nullable
+     */
+  verdict?: ReasoningReviewItemVerdict;
+  /**
+     * short_answer — the grader's one-line rationale.
+     * @nullable
+     */
+  rationale?: string | null;
   /**
      * dilemma — the possible decisions.
      * @nullable
@@ -617,6 +675,16 @@ export interface ReasoningAttemptState {
   id: number;
   assessmentId: number;
   status: ReasoningAttemptStateStatus;
+  /**
+     * The response format chosen for this attempt.
+     * @nullable
+     */
+  format?: ReasoningAttemptStateFormat;
+  /**
+     * When true, no attempt exists yet and the client must prompt the student to choose a format, then re-call start with that format. In this case id is 0 and items is empty.
+     * @nullable
+     */
+  needsFormat?: boolean | null;
   startedAt: string;
   /** @nullable */
   submittedAt?: string | null;
@@ -650,6 +718,16 @@ export interface ReasoningResponseInput {
      * @nullable
      */
   selectedIndex?: number | null;
+  /**
+     * short_answer — the student's brief written response.
+     * @nullable
+     */
+  text?: string | null;
+  /**
+     * hybrid mcq — an optional short written justification for the choice.
+     * @nullable
+     */
+  note?: string | null;
   /**
      * dilemma — chosen decision index.
      * @nullable
@@ -691,9 +769,23 @@ export interface RewriteLectureInput {
   baseLevel?: RewriteLectureInputBaseLevel;
 }
 
+/**
+ * The response format for the attempt: mc = multiple-choice only, hybrid = multiple-choice plus a short written note, written = brief open written responses. Required when starting a brand-new attempt; ignored when resuming an existing one. When omitted and no attempt exists yet, the server responds with needsFormat=true so the client can prompt for a format.
+ */
+export type StartReasoningBodyFormat = typeof StartReasoningBodyFormat[keyof typeof StartReasoningBodyFormat];
+
+
+export const StartReasoningBodyFormat = {
+  mc: 'mc',
+  hybrid: 'hybrid',
+  written: 'written',
+} as const;
+
 export interface StartReasoningBody {
   /** When true, begin a fresh attempt even if a previous attempt was already submitted. An in-progress attempt is still resumed. */
   retake?: boolean;
+  /** The response format for the attempt: mc = multiple-choice only, hybrid = multiple-choice plus a short written note, written = brief open written responses. Required when starting a brand-new attempt; ignored when resuming an existing one. When omitted and no attempt exists yet, the server responds with needsFormat=true so the client can prompt for a format. */
+  format?: StartReasoningBodyFormat;
 }
 
 export interface SubmitReasoningBody {

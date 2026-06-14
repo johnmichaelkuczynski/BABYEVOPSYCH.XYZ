@@ -14,6 +14,16 @@ export interface ReasoningResponseInput {
      */
   selectedIndex?: number | null;
   /**
+     * short_answer — the student's brief written response.
+     * @nullable
+     */
+  text?: string | null;
+  /**
+     * hybrid mcq — an optional short written justification for the choice.
+     * @nullable
+     */
+  note?: string | null;
+  /**
      * dilemma — chosen decision index.
      * @nullable
      */

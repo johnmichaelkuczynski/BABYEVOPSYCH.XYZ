@@ -1075,12 +1075,15 @@ components:
         position: { type: integer }
         type:
           type: string
-          enum: [dilemma, mcq]
+          enum: [dilemma, mcq, short_answer]
         prompt: { type: string }
         options:
           type: ["array", "null"]
           items: { type: string }
           description: For mcq items — the answer choices.
+        allowNote:
+          type: ["boolean", "null"]
+          description: For hybrid-format mcq items — when true, an optional short written note accompanies the choice.
         decisionOptions:
           type: ["array", "null"]
           items: { type: string }
@@ -1121,6 +1124,16 @@ components:
         status:
           type: string
           enum: [in_progress, submitted]
+        format:
+          type: ["string", "null"]
+          enum: [mc, hybrid, written, null]
+          description: The response format chosen for this attempt.
+        needsFormat:
+          type: ["boolean", "null"]
+          description: >-
+            When true, no attempt exists yet and the client must prompt the
+            student to choose a format, then re-call start with that format.
+            In this case id is 0 and items is empty.
         startedAt: { type: string, format: date-time }
         submittedAt: { type: ["string", "null"], format: date-time }
         passed: { type: ["boolean", "null"] }
@@ -1155,6 +1168,12 @@ components:
         selectedIndex:
           type: ["integer", "null"]
           description: mcq — chosen option index.
+        text:
+          type: ["string", "null"]
+          description: short_answer — the student's brief written response.
+        note:
+          type: ["string", "null"]
+          description: hybrid mcq — an optional short written justification for the choice.
         decisionIndex:
           type: ["integer", "null"]
           description: dilemma — chosen decision index.
@@ -1189,6 +1208,16 @@ components:
           description: >-
             When true, begin a fresh attempt even if a previous attempt was
             already submitted. An in-progress attempt is still resumed.
+        format:
+          type: string
+          enum: [mc, hybrid, written]
+          description: >-
+            The response format for the attempt: mc = multiple-choice only,
+            hybrid = multiple-choice plus a short written note, written = brief
+            open written responses. Required when starting a brand-new attempt;
+            ignored when resuming an existing one. When omitted and no attempt
+            exists yet, the server responds with needsFormat=true so the client
+            can prompt for a format.
 
     SubmitReasoningBody:
       type: object
@@ -1214,7 +1243,7 @@ components:
         itemId: { type: integer }
         type:
           type: string
-          enum: [dilemma, mcq]
+          enum: [dilemma, mcq, short_answer]
         prompt: { type: string }
         options:
           type: ["array", "null"]
@@ -1228,7 +1257,23 @@ components:
           description: mcq — the correct option index.
         isCorrect:
           type: ["boolean", "null"]
-          description: mcq — whether the student's choice was correct.
+          description: mcq/short_answer — whether the student's answer was judged correct.
+        note:
+          type: ["string", "null"]
+          description: hybrid mcq — the optional justification the student wrote.
+        text:
+          type: ["string", "null"]
+          description: short_answer — the student's written response.
+        referenceAnswer:
+          type: ["string", "null"]
+          description: short_answer — a model answer the response was graded against.
+        verdict:
+          type: ["string", "null"]
+          enum: [correct, partial, incorrect, null]
+          description: short_answer — the grader's verdict on the written response.
+        rationale:
+          type: ["string", "null"]
+          description: short_answer — the grader's one-line rationale.
         decisionOptions:
           type: ["array", "null"]
           items: { type: string }

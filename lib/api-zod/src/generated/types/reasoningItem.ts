@@ -18,6 +18,11 @@ export interface ReasoningItem {
      */
   options?: string[] | null;
   /**
+     * For hybrid-format mcq items — when true, an optional short written note accompanies the choice.
+     * @nullable
+     */
+  allowNote?: boolean | null;
+  /**
      * For dilemma items — the possible decisions on the scenario.
      * @nullable
      */

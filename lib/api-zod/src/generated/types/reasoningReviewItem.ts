@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ReasoningReviewItemType } from './reasoningReviewItemType';
+import type { ReasoningReviewItemVerdict } from './reasoningReviewItemVerdict';
 
 export interface ReasoningReviewItem {
   itemId: number;
@@ -27,10 +28,35 @@ export interface ReasoningReviewItem {
      */
   correctIndex?: number | null;
   /**
-     * mcq — whether the student's choice was correct.
+     * mcq/short_answer — whether the student's answer was judged correct.
      * @nullable
      */
   isCorrect?: boolean | null;
+  /**
+     * hybrid mcq — the optional justification the student wrote.
+     * @nullable
+     */
+  note?: string | null;
+  /**
+     * short_answer — the student's written response.
+     * @nullable
+     */
+  text?: string | null;
+  /**
+     * short_answer — a model answer the response was graded against.
+     * @nullable
+     */
+  referenceAnswer?: string | null;
+  /**
+     * short_answer — the grader's verdict on the written response.
+     * @nullable
+     */
+  verdict?: ReasoningReviewItemVerdict;
+  /**
+     * short_answer — the grader's one-line rationale.
+     * @nullable
+     */
+  rationale?: string | null;
   /**
      * dilemma — the possible decisions.
      * @nullable

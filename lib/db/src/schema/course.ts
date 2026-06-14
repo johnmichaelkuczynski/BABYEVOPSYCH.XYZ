@@ -197,6 +197,8 @@ export const diagnosticAttemptsTable = pgTable("diagnostic_attempts", {
     .notNull()
     .references(() => diagnosticAssessmentsTable.id, { onDelete: "cascade" }),
   status: text("status").notNull().default("in_progress"), // in_progress | submitted
+  // The response format chosen for this attempt: mc | hybrid | written.
+  format: text("format").notNull().default("mc"),
   passed: boolean("passed"),
   feedback: text("feedback"),
   responses: jsonb("responses"),
@@ -218,8 +220,10 @@ export const diagnosticResponsesTable = pgTable("diagnostic_responses", {
     .notNull()
     .references(() => diagnosticItemsTable.id, { onDelete: "cascade" }),
   selectedIndex: integer("selected_index"), // mcq — chosen option index
+  answerText: text("answer_text"), // short_answer — the student's written response
+  note: text("note"), // hybrid mcq — optional written justification
   decisionIndex: integer("decision_index"), // dilemma — chosen decision index
   ratings: jsonb("ratings"), // dilemma — importance rating per consideration
   ranking: jsonb("ranking"), // dilemma — consideration indices, most-important first
-  isCorrect: boolean("is_correct"), // mcq only — null for dilemma items
+  isCorrect: boolean("is_correct"), // mcq/short_answer — null for dilemma items
 });

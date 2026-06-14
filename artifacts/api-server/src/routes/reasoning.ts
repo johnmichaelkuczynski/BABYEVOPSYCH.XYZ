@@ -21,8 +21,9 @@ import {
 import {
   scoreAssessment,
   judgeCritical,
+  gradeWritten,
   generateFeedback,
-  generateVariantItems,
+  buildAttemptItems,
   buildReview,
   publicItem,
   type DiagnosticItemRow,
@@ -30,6 +31,9 @@ import {
   type ResponseInput,
   type ReasoningMetric,
   type ScoreSummary,
+  type WrittenGrade,
+  type Format,
+  type ItemType,
 } from "../lib/reasoning";
 
 const router: IRouter = Router();
@@ -51,7 +55,7 @@ function mapItemRows(rows: ItemRowRaw[]): DiagnosticItemRow[] {
   return rows.map((r) => ({
     id: r.id,
     position: r.position,
-    type: r.type as "dilemma" | "mcq",
+    type: r.type as ItemType,
     prompt: r.prompt,
     payload: r.payload,
     scoring: r.scoring,
@@ -204,15 +208,35 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
     return;
   }
 
+  // A retake that already carries a chosen format wants a brand-new attempt in
+  // exactly that format — never a resume. This is the format-picker → start flow
+  // from the UI, where the student has explicitly re-selected how to answer.
+  const wantsFreshFormat = retake && typeof parsedBody.data.format === "string";
+  // Discard any stale in-progress attempt first, so a later plain refresh can't
+  // resume the abandoned one instead of the fresh attempt we're about to make.
+  if (wantsFreshFormat) {
+    await db
+      .delete(diagnosticAttemptsTable)
+      .where(
+        and(
+          eq(diagnosticAttemptsTable.assessmentId, id),
+          eq(diagnosticAttemptsTable.status, "in_progress"),
+        ),
+      );
+  }
+
   // Resume an in-progress attempt if one exists (so a refresh mid-assessment
   // never loses progress). Otherwise, on a normal open we surface the
   // already-passed attempt for review; on a retake we fall through and start a
-  // brand-new attempt so the student can take it again.
-  const existing = await db
-    .select()
-    .from(diagnosticAttemptsTable)
-    .where(eq(diagnosticAttemptsTable.assessmentId, id))
-    .orderBy(asc(diagnosticAttemptsTable.id));
+  // brand-new attempt so the student can take it again. A retake with a chosen
+  // format always starts fresh (handled above).
+  const existing = wantsFreshFormat
+    ? []
+    : await db
+        .select()
+        .from(diagnosticAttemptsTable)
+        .where(eq(diagnosticAttemptsTable.assessmentId, id))
+        .orderBy(asc(diagnosticAttemptsTable.id));
   const reusable = retake
     ? existing.find((x) => x.status === "in_progress")
     : existing.find((x) => x.status === "in_progress") ??
@@ -234,19 +258,50 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
         v as number,
       ]),
     );
+    // Reuse the persisted written grades so the review shows the same verdicts.
+    const written = new Map<number, WrittenGrade>(
+      Object.entries(summary?.writtenByItem ?? {}).map(([k, v]) => [
+        Number(k),
+        v as WrittenGrade,
+      ]),
+    );
     res.json(
       StartReasoningAttemptResponse.parse({
         id: reusable.id,
         assessmentId: reusable.assessmentId,
         status: reusable.status as "in_progress" | "submitted",
+        format: (reusable.format as Format | null) ?? null,
+        needsFormat: false,
         startedAt: reusable.startedAt.toISOString(),
         submittedAt: reusable.submittedAt?.toISOString() ?? null,
         passed: reusable.passed,
         feedback: reusable.feedback,
         headline: summary?.headline ?? null,
         metrics: (summary?.metrics as ReasoningMetric[] | undefined) ?? null,
-        review: reviewed ? buildReview(items, storedResponses, judged) : null,
+        review: reviewed ? buildReview(items, storedResponses, judged, written) : null,
         items: items.map(publicItem),
+      }),
+    );
+    return;
+  }
+
+  // No reusable attempt: a brand-new attempt needs a format. If the client has
+  // not chosen one yet, signal needsFormat so it can prompt the student, then
+  // re-call start with the chosen format. No attempt row is created yet.
+  const format = parsedBody.data.format as Format | undefined;
+  if (!format) {
+    res.json(
+      StartReasoningAttemptResponse.parse({
+        id: 0,
+        assessmentId: id,
+        status: "in_progress",
+        format: null,
+        needsFormat: true,
+        startedAt: new Date().toISOString(),
+        submittedAt: null,
+        passed: null,
+        feedback: null,
+        items: [],
       }),
     );
     return;
@@ -254,7 +309,7 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
 
   const [created] = await db
     .insert(diagnosticAttemptsTable)
-    .values({ assessmentId: id, status: "in_progress" })
+    .values({ assessmentId: id, status: "in_progress", format })
     .returning();
   if (!created) {
     res.status(500).json({ error: "failed to create" });
@@ -264,9 +319,10 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
   // Every occurrence of the assessment presents freshly generated questions of
   // the same kind (different scenarios/items) — including the very first take
   // and any take after a course reset. The seeded template is only the
-  // structural blueprint, and the fallback if generation fails.
+  // structural blueprint, and the fallback if generation fails. The items are
+  // shaped to the chosen response format (multiple-choice, hybrid, or written).
   const template = await loadTemplateItems(id);
-  const variant = await generateVariantItems(a.instrument as Instrument, template);
+  const variant = await buildAttemptItems(a.instrument as Instrument, format, template);
   await insertAttemptItems(id, created.id, variant);
   const items = await loadItemsForAttempt(id, created.id);
 
@@ -275,6 +331,8 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
       id: created.id,
       assessmentId: created.assessmentId,
       status: "in_progress",
+      format,
+      needsFormat: false,
       startedAt: created.startedAt.toISOString(),
       submittedAt: null,
       passed: null,
@@ -329,7 +387,12 @@ router.post("/reasoning/assessments/:assessmentId/submit", async (req, res): Pro
   // per-question review use these judged answers.
   const judged =
     instrument === "critical" ? await judgeCritical(items) : new Map<number, number>();
-  const summary = scoreAssessment(instrument, items, responses, judged);
+  // Grade any open written (short_answer) responses leniently against their
+  // model answers; used by both scoring and the per-question review.
+  const written = items.some((it) => it.type === "short_answer")
+    ? await gradeWritten(items, responses)
+    : new Map<number, WrittenGrade>();
+  const summary = scoreAssessment(instrument, items, responses, judged, written);
   const feedback = await generateFeedback(instrument, a.title, summary);
 
   // Pass/Fail policy: submitting the assessment is a pass.
@@ -370,7 +433,8 @@ router.post("/reasoning/assessments/:assessmentId/submit", async (req, res): Pro
   }
 
   // Persist one normalized row per answered item (replacing any prior rows for
-  // this attempt). isCorrect is set for mcq items, left null for dilemmas.
+  // this attempt). isCorrect is set for mcq (judged option) and short_answer
+  // (grader verdict) items, and left null for dilemmas.
   await db
     .delete(diagnosticResponsesTable)
     .where(eq(diagnosticResponsesTable.attemptId, attemptId));
@@ -386,11 +450,16 @@ router.post("/reasoning/assessments/:assessmentId/submit", async (req, res): Pro
       isCorrect =
         typeof resp?.selectedIndex === "number" &&
         resp.selectedIndex === correctIndex;
+    } else if (item.type === "short_answer") {
+      const grade = written.get(item.id);
+      isCorrect = grade ? grade.verdict === "correct" : null;
     }
     return {
       attemptId,
       itemId: item.id,
       selectedIndex: resp?.selectedIndex ?? null,
+      answerText: resp?.text ?? null,
+      note: resp?.note ?? null,
       decisionIndex: resp?.decisionIndex ?? null,
       ratings: resp?.ratings ?? null,
       ranking: resp?.ranking ?? null,
@@ -408,7 +477,7 @@ router.post("/reasoning/assessments/:assessmentId/submit", async (req, res): Pro
       feedback,
       headline: summary.headline,
       metrics: summary.metrics,
-      review: buildReview(items, responses, judged),
+      review: buildReview(items, responses, judged, written),
     }),
   );
 });
