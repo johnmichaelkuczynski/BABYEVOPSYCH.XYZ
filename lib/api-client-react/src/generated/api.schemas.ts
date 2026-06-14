@@ -571,6 +571,19 @@ export const ReasoningAttemptStateFormat = {
   written: 'written',
 } as const;
 
+/**
+ * The length (question count) chosen for this attempt.
+ * @nullable
+ */
+export type ReasoningAttemptStateLength = typeof ReasoningAttemptStateLength[keyof typeof ReasoningAttemptStateLength] | null;
+
+
+export const ReasoningAttemptStateLength = {
+  short: 'short',
+  medium: 'medium',
+  long: 'long',
+} as const;
+
 export interface ReasoningMetric {
   label: string;
   value: string;
@@ -681,6 +694,11 @@ export interface ReasoningAttemptState {
      */
   format?: ReasoningAttemptStateFormat;
   /**
+     * The length (question count) chosen for this attempt.
+     * @nullable
+     */
+  length?: ReasoningAttemptStateLength;
+  /**
      * When true, no attempt exists yet and the client must prompt the student to choose a format, then re-call start with that format. In this case id is 0 and items is empty.
      * @nullable
      */
@@ -781,11 +799,25 @@ export const StartReasoningBodyFormat = {
   written: 'written',
 } as const;
 
+/**
+ * How many questions the attempt should contain: short = a few questions, medium = the standard set, long = a thorough set. Applied when starting a brand-new attempt; defaults to medium when omitted.
+ */
+export type StartReasoningBodyLength = typeof StartReasoningBodyLength[keyof typeof StartReasoningBodyLength];
+
+
+export const StartReasoningBodyLength = {
+  short: 'short',
+  medium: 'medium',
+  long: 'long',
+} as const;
+
 export interface StartReasoningBody {
   /** When true, begin a fresh attempt even if a previous attempt was already submitted. An in-progress attempt is still resumed. */
   retake?: boolean;
   /** The response format for the attempt: mc = multiple-choice only, hybrid = multiple-choice plus a short written note, written = brief open written responses. Required when starting a brand-new attempt; ignored when resuming an existing one. When omitted and no attempt exists yet, the server responds with needsFormat=true so the client can prompt for a format. */
   format?: StartReasoningBodyFormat;
+  /** How many questions the attempt should contain: short = a few questions, medium = the standard set, long = a thorough set. Applied when starting a brand-new attempt; defaults to medium when omitted. */
+  length?: StartReasoningBodyLength;
 }
 
 export interface SubmitReasoningBody {

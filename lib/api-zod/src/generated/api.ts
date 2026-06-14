@@ -642,7 +642,8 @@ export const StartReasoningAttemptParams = zod.object({
 
 export const StartReasoningAttemptBody = zod.object({
   "retake": zod.boolean().optional().describe('When true, begin a fresh attempt even if a previous attempt was already submitted. An in-progress attempt is still resumed.'),
-  "format": zod.enum(['mc', 'hybrid', 'written']).optional().describe('The response format for the attempt: mc = multiple-choice only, hybrid = multiple-choice plus a short written note, written = brief open written responses. Required when starting a brand-new attempt; ignored when resuming an existing one. When omitted and no attempt exists yet, the server responds with needsFormat=true so the client can prompt for a format.')
+  "format": zod.enum(['mc', 'hybrid', 'written']).optional().describe('The response format for the attempt: mc = multiple-choice only, hybrid = multiple-choice plus a short written note, written = brief open written responses. Required when starting a brand-new attempt; ignored when resuming an existing one. When omitted and no attempt exists yet, the server responds with needsFormat=true so the client can prompt for a format.'),
+  "length": zod.enum(['short', 'medium', 'long']).optional().describe('How many questions the attempt should contain: short = a few questions, medium = the standard set, long = a thorough set. Applied when starting a brand-new attempt; defaults to medium when omitted.')
 })
 
 export const StartReasoningAttemptResponse = zod.object({
@@ -650,6 +651,7 @@ export const StartReasoningAttemptResponse = zod.object({
   "assessmentId": zod.number(),
   "status": zod.enum(['in_progress', 'submitted']),
   "format": zod.union([zod.literal('mc'),zod.literal('hybrid'),zod.literal('written'),zod.literal(null)]).nullish().describe('The response format chosen for this attempt.'),
+  "length": zod.union([zod.literal('short'),zod.literal('medium'),zod.literal('long'),zod.literal(null)]).nullish().describe('The length (question count) chosen for this attempt.'),
   "needsFormat": zod.boolean().nullish().describe('When true, no attempt exists yet and the client must prompt the student to choose a format, then re-call start with that format. In this case id is 0 and items is empty.'),
   "startedAt": zod.coerce.date(),
   "submittedAt": zod.coerce.date().nullish(),

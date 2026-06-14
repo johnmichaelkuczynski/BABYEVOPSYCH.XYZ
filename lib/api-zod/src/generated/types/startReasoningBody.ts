@@ -6,10 +6,13 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { StartReasoningBodyFormat } from './startReasoningBodyFormat';
+import type { StartReasoningBodyLength } from './startReasoningBodyLength';
 
 export interface StartReasoningBody {
   /** When true, begin a fresh attempt even if a previous attempt was already submitted. An in-progress attempt is still resumed. */
   retake?: boolean;
   /** The response format for the attempt: mc = multiple-choice only, hybrid = multiple-choice plus a short written note, written = brief open written responses. Required when starting a brand-new attempt; ignored when resuming an existing one. When omitted and no attempt exists yet, the server responds with needsFormat=true so the client can prompt for a format. */
   format?: StartReasoningBodyFormat;
+  /** How many questions the attempt should contain: short = a few questions, medium = the standard set, long = a thorough set. Applied when starting a brand-new attempt; defaults to medium when omitted. */
+  length?: StartReasoningBodyLength;
 }

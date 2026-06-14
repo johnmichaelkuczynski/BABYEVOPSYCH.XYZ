@@ -1128,6 +1128,10 @@ components:
           type: ["string", "null"]
           enum: [mc, hybrid, written, null]
           description: The response format chosen for this attempt.
+        length:
+          type: ["string", "null"]
+          enum: [short, medium, long, null]
+          description: The length (question count) chosen for this attempt.
         needsFormat:
           type: ["boolean", "null"]
           description: >-
@@ -1218,6 +1222,13 @@ components:
             ignored when resuming an existing one. When omitted and no attempt
             exists yet, the server responds with needsFormat=true so the client
             can prompt for a format.
+        length:
+          type: string
+          enum: [short, medium, long]
+          description: >-
+            How many questions the attempt should contain: short = a few
+            questions, medium = the standard set, long = a thorough set. Applied
+            when starting a brand-new attempt; defaults to medium when omitted.
 
     SubmitReasoningBody:
       type: object

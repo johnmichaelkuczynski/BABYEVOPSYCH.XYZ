@@ -199,6 +199,8 @@ export const diagnosticAttemptsTable = pgTable("diagnostic_attempts", {
   status: text("status").notNull().default("in_progress"), // in_progress | submitted
   // The response format chosen for this attempt: mc | hybrid | written.
   format: text("format").notNull().default("mc"),
+  // The length chosen for this attempt: short | medium | long (question count).
+  length: text("length").notNull().default("medium"),
   passed: boolean("passed"),
   feedback: text("feedback"),
   responses: jsonb("responses"),

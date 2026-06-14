@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ReasoningAttemptStateFormat } from './reasoningAttemptStateFormat';
+import type { ReasoningAttemptStateLength } from './reasoningAttemptStateLength';
 import type { ReasoningAttemptStateStatus } from './reasoningAttemptStateStatus';
 import type { ReasoningItem } from './reasoningItem';
 import type { ReasoningMetric } from './reasoningMetric';
@@ -20,6 +21,11 @@ export interface ReasoningAttemptState {
      * @nullable
      */
   format?: ReasoningAttemptStateFormat;
+  /**
+     * The length (question count) chosen for this attempt.
+     * @nullable
+     */
+  length?: ReasoningAttemptStateLength;
   /**
      * When true, no attempt exists yet and the client must prompt the student to choose a format, then re-call start with that format. In this case id is 0 and items is empty.
      * @nullable

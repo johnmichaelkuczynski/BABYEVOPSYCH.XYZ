@@ -33,6 +33,7 @@ import {
   type ScoreSummary,
   type WrittenGrade,
   type Format,
+  type Length,
   type ItemType,
 } from "../lib/reasoning";
 
@@ -198,6 +199,7 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
     return;
   }
   const retake = parsedBody.data.retake === true;
+  const length = (parsedBody.data.length as Length | undefined) ?? "medium";
 
   const [a] = await db
     .select()
@@ -271,6 +273,7 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
         assessmentId: reusable.assessmentId,
         status: reusable.status as "in_progress" | "submitted",
         format: (reusable.format as Format | null) ?? null,
+        length: (reusable.length as Length | null) ?? null,
         needsFormat: false,
         startedAt: reusable.startedAt.toISOString(),
         submittedAt: reusable.submittedAt?.toISOString() ?? null,
@@ -296,6 +299,7 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
         assessmentId: id,
         status: "in_progress",
         format: null,
+        length: null,
         needsFormat: true,
         startedAt: new Date().toISOString(),
         submittedAt: null,
@@ -309,7 +313,7 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
 
   const [created] = await db
     .insert(diagnosticAttemptsTable)
-    .values({ assessmentId: id, status: "in_progress", format })
+    .values({ assessmentId: id, status: "in_progress", format, length })
     .returning();
   if (!created) {
     res.status(500).json({ error: "failed to create" });
@@ -322,7 +326,7 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
   // structural blueprint, and the fallback if generation fails. The items are
   // shaped to the chosen response format (multiple-choice, hybrid, or written).
   const template = await loadTemplateItems(id);
-  const variant = await buildAttemptItems(a.instrument as Instrument, format, template);
+  const variant = await buildAttemptItems(a.instrument as Instrument, format, length, template);
   await insertAttemptItems(id, created.id, variant);
   const items = await loadItemsForAttempt(id, created.id);
 
@@ -332,6 +336,7 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
       assessmentId: created.assessmentId,
       status: "in_progress",
       format,
+      length,
       needsFormat: false,
       startedAt: created.startedAt.toISOString(),
       submittedAt: null,

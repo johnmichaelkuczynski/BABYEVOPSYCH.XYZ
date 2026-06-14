@@ -9,4 +9,5 @@
 - [Orval request-body naming](orval-request-body-naming.md) — name OpenAPI requestBody component schemas `*Input`, never `<OperationId>Body`, or the zod barrel collides with orval's generated operation-body symbol.
 - [Reasoning instrument label](reasoning-instrument-label.md) — instrument enum stays `"ethical"` internally (db/openapi/codegen stability); ALWAYS map it to display label "Professional Judgment" at every render point, never print the raw enum.
 - [Course design mandates](course-design-mandates.md) — math keyboard required on ALL inputs incl. tutor (even no-math course); every question (incl. adaptive drill) must be scenario-reasoning, never one-word/recitation.
+- [Reasoning attempt length](reasoning-attempt-length.md) — per-attempt short/medium/long counts; critical=5/10/16 (medium pinned to seed), ethical=2/4/8 (was 1/attempt, intentional).
 - [Diagnostic format options](diagnostic-format-options.md) — diagnostics let student pick mc/hybrid/written per attempt; retake+format always starts fresh (deletes stale in-progress); render written verdict's "Partial", don't flatten to isCorrect.

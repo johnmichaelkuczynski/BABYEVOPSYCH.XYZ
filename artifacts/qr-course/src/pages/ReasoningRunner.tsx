@@ -16,12 +16,14 @@ import type {
 } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, AlertCircle, XCircle, ListChecks, PenLine, SplitSquareHorizontal } from "lucide-react";
+import { CheckCircle2, AlertCircle, XCircle, ListChecks, PenLine, SplitSquareHorizontal, Gauge, Rows3, Layers } from "lucide-react";
 import { MathKeyboard, insertAtTextareaCursor } from "@/components/MathKeyboard";
+import type { StartReasoningBodyLength } from "@workspace/api-client-react";
 
 const RATING_LABELS = ["No importance", "Little", "Some", "Much", "Great"];
 
 type Format = StartReasoningBodyFormat;
+type Length = StartReasoningBodyLength;
 
 const FORMAT_OPTIONS: {
   value: Format;
@@ -49,6 +51,43 @@ const FORMAT_OPTIONS: {
   },
 ];
 
+const LENGTH_OPTIONS: {
+  value: Length;
+  title: string;
+  blurb: string;
+  icon: React.ComponentType<{ className?: string }>;
+}[] = [
+  {
+    value: "short",
+    title: "Short",
+    blurb: "Just a few questions — the quickest way through.",
+    icon: Gauge,
+  },
+  {
+    value: "medium",
+    title: "Medium",
+    blurb: "The standard set — a balanced check of your reasoning.",
+    icon: Rows3,
+  },
+  {
+    value: "long",
+    title: "Long",
+    blurb: "A thorough set — more questions for a fuller picture.",
+    icon: Layers,
+  },
+];
+
+const FORMAT_LABELS: Record<Format, string> = {
+  mc: "Multiple choice",
+  hybrid: "Multiple choice + note",
+  written: "Brief written",
+};
+const LENGTH_LABELS: Record<Length, string> = {
+  short: "Short",
+  medium: "Medium",
+  long: "Long",
+};
+
 type DilemmaState = {
   decisionIndex: number | null;
   ratings: Record<number, number>; // considerationIndex -> 0..4
@@ -71,10 +110,12 @@ export default function ReasoningRunner() {
     review: ReasoningReviewItem[] | null;
   } | null>(null);
 
-  // When the server reports no attempt exists yet, the student must choose a
-  // response format before items are generated.
+  // When the server reports no attempt exists yet, the student first chooses a
+  // response format, then a length, before items are generated.
   const [needsFormat, setNeedsFormat] = useState(false);
+  const [needsLength, setNeedsLength] = useState(false);
   const [format, setFormat] = useState<Format | null>(null);
+  const [length, setLength] = useState<Length | null>(null);
   // Whether the next start should force a brand-new attempt (a retake).
   const retakeRef = useRef(false);
 
@@ -97,6 +138,7 @@ export default function ReasoningRunner() {
     items: ReasoningItem[];
     needsFormat?: boolean | null;
     format?: Format | null;
+    length?: Length | null;
     feedback?: string | null;
     headline?: string | null;
     metrics?: ReasoningMetric[] | null;
@@ -104,11 +146,14 @@ export default function ReasoningRunner() {
   }) {
     if (data.needsFormat) {
       setNeedsFormat(true);
+      setNeedsLength(false);
       return;
     }
     setNeedsFormat(false);
+    setNeedsLength(false);
     setItems(data.items);
     if (data.format) setFormat(data.format);
+    if (data.length) setLength(data.length);
     if (data.status === "submitted") {
       setAlreadyPassed({
         feedback: data.feedback ?? null,
@@ -128,11 +173,26 @@ export default function ReasoningRunner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assessmentId]);
 
+  // Step 1: pick a format, then surface the length picker. No attempt is created
+  // until both have been chosen.
   function chooseFormat(chosen: Format) {
     setError(null);
     setFormat(chosen);
+    setNeedsFormat(false);
+    setNeedsLength(true);
+  }
+
+  // Step 2: pick a length, then create the attempt with the chosen format+length.
+  function chooseLength(chosen: Length) {
+    if (!format) {
+      setNeedsFormat(true);
+      setNeedsLength(false);
+      return;
+    }
+    setError(null);
+    setLength(chosen);
     startAttempt.mutate(
-      { assessmentId, data: { format: chosen, retake: retakeRef.current } },
+      { assessmentId, data: { format, length: chosen, retake: retakeRef.current } },
       {
         onSuccess: (data) => {
           retakeRef.current = false;
@@ -232,8 +292,11 @@ export default function ReasoningRunner() {
     setNotes({});
     setWritten({});
     setDilemma({});
+    setFormat(null);
+    setLength(null);
+    setNeedsLength(false);
     retakeRef.current = true;
-    // A retake always begins by choosing a fresh format.
+    // A retake always begins by choosing a fresh format, then a length.
     setNeedsFormat(true);
   }
 
@@ -295,13 +358,68 @@ export default function ReasoningRunner() {
               );
             })}
           </div>
-          {startAttempt.isPending && (
-            <p className="text-sm text-muted-foreground">Preparing your questions…</p>
-          )}
           <div>
             <Link href="/reasoning">
               <Button variant="outline" data-testid="button-back-reasoning">Back to Assessments</Button>
             </Link>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (needsLength && !result && !alreadyPassed) {
+    return (
+      <Layout>
+        <div className="p-8 max-w-3xl mx-auto w-full flex flex-col gap-8">
+          <div className="border-b pb-4">
+            <h1 className="text-2xl font-serif font-bold text-primary">{assessment.title}</h1>
+            <p className="text-sm text-muted-foreground mt-2">
+              How long would you like this to be? All lengths cover the same kind of reasoning —
+              pick how many questions you want to answer.
+            </p>
+            {format && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Format: <span className="font-medium text-foreground">{FORMAT_LABELS[format]}</span>
+              </p>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            {LENGTH_OPTIONS.map((opt) => {
+              const Icon = opt.icon;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => chooseLength(opt.value)}
+                  disabled={startAttempt.isPending}
+                  className="text-left flex items-start gap-4 px-5 py-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors disabled:opacity-60"
+                  data-testid={`length-${opt.value}`}
+                >
+                  <Icon className="w-6 h-6 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-serif font-semibold">{opt.title}</div>
+                    <div className="text-sm text-muted-foreground mt-0.5">{opt.blurb}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {startAttempt.isPending && (
+            <p className="text-sm text-muted-foreground">Preparing your questions…</p>
+          )}
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setNeedsLength(false);
+                setNeedsFormat(true);
+              }}
+              disabled={startAttempt.isPending}
+              data-testid="button-back-format"
+            >
+              Back
+            </Button>
           </div>
         </div>
       </Layout>
@@ -334,6 +452,20 @@ export default function ReasoningRunner() {
               <span className="inline-flex items-center gap-1.5 text-chart-2 font-medium">
                 <CheckCircle2 className="w-5 h-5" /> Passed
               </span>
+              {(format || length) && (
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  {format && (
+                    <span className="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
+                      {FORMAT_LABELS[format]}
+                    </span>
+                  )}
+                  {length && (
+                    <span className="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-xs text-muted-foreground">
+                      {LENGTH_LABELS[length]}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button

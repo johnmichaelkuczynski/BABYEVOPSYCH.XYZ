@@ -8,6 +8,12 @@ import type { Stage, SkillArea } from "./diagnosticContent";
 //   written = brief open written responses
 export type Format = "mc" | "hybrid" | "written";
 
+// How many questions an attempt contains:
+//   short  = a few questions
+//   medium = the standard set (matches the seeded template count)
+//   long   = a thorough set
+export type Length = "short" | "medium" | "long";
+
 export type ItemType = "dilemma" | "mcq" | "short_answer";
 
 // Shape of a persisted diagnostic item row (payload/scoring are jsonb).
@@ -779,22 +785,77 @@ async function generateCriticalWritten(
   });
 }
 
-// Build the items a student attempts, given the chosen response format. Always
-// returns usable items (falls back to the template/bank on any failure).
+// How many questions to present for a given instrument + chosen length.
+// medium is the standard set ("what you now have"): for critical it matches the
+// seeded template count; short is roughly half (min 3), long is ~1.6x. The
+// ethical instrument's seed is a single scenario, so its counts are fixed to
+// give a meaningful short/medium/long spread.
+function targetCount(
+  instrument: "ethical" | "critical",
+  templateItems: DiagnosticItemRow[],
+  length: Length,
+): number {
+  if (instrument === "ethical") {
+    return length === "short" ? 2 : length === "long" ? 8 : 4;
+  }
+  const base = templateItems.filter((it) => it.type === "mcq").length || 5;
+  if (length === "short") return Math.max(3, Math.round(base / 2));
+  if (length === "long") return Math.round(base * 1.6);
+  return base;
+}
+
+// Resize a critical (MCQ) template to exactly `n` items by cycling through the
+// template's MCQs. Only the skill-area sequence, item count, and a few example
+// prompts are read downstream, so cycling is safe; on a generation failure the
+// fallback will repeat questions, which is acceptable for a degraded path.
+function resizeCriticalTemplate(items: DiagnosticItemRow[], n: number): DiagnosticItemRow[] {
+  const mcq = items.filter((it) => it.type === "mcq");
+  if (mcq.length === 0) return items.slice(0, n);
+  const out: DiagnosticItemRow[] = [];
+  for (let i = 0; i < n; i++) out.push(mcq[i % mcq.length]!);
+  return out;
+}
+
+// Generate `count` fresh ethical dilemma "bank" items. Each generateVariantItems
+// call yields one dilemma (a fresh scenario, or the template as a fallback), so
+// we run `count` of them in parallel and flatten. Padding only matters in the
+// degenerate case where a call returns no dilemma at all.
+async function generateEthicalBank(
+  templateItems: DiagnosticItemRow[],
+  count: number,
+): Promise<GeneratedItemContent[]> {
+  const batches = await Promise.all(
+    Array.from({ length: count }, () => generateVariantItems("ethical", templateItems)),
+  );
+  const dilemmas = batches.flat().filter((it) => it.type === "dilemma");
+  if (dilemmas.length >= count) return dilemmas.slice(0, count);
+  const fallback = templateContent(templateItems).filter((it) => it.type === "dilemma");
+  while (dilemmas.length < count && fallback.length > 0) {
+    dilemmas.push(fallback[dilemmas.length % fallback.length]!);
+  }
+  return dilemmas;
+}
+
+// Build the items a student attempts, given the chosen response format and
+// length. Always returns usable items (falls back to the template/bank on any
+// failure).
 export async function buildAttemptItems(
   instrument: "ethical" | "critical",
   format: Format,
+  length: Length,
   templateItems: DiagnosticItemRow[],
 ): Promise<GeneratedItemContent[]> {
   if (templateItems.length === 0) return [];
+  const count = targetCount(instrument, templateItems, length);
 
   if (instrument === "critical") {
+    const sized = resizeCriticalTemplate(templateItems, count);
     if (format === "written") {
       try {
-        const written = await generateCriticalWritten(templateItems);
-        if (written.length === templateItems.length) return written;
+        const written = await generateCriticalWritten(sized);
+        if (written.length === sized.length) return written;
         logger.warn(
-          { want: templateItems.length, got: written.length },
+          { want: sized.length, got: written.length },
           "critical written: count mismatch, using fallback",
         );
       } catch (err) {
@@ -803,15 +864,15 @@ export async function buildAttemptItems(
           "critical written generation failed, using fallback",
         );
       }
-      return criticalWrittenFallback(templateItems);
+      return criticalWrittenFallback(sized);
     }
-    const mcqs = await generateVariantItems("critical", templateItems);
+    const mcqs = await generateVariantItems("critical", sized);
     return mcqs.map((it) => withAllowNote(it, format === "hybrid"));
   }
 
-  // Ethical: generate a fresh dilemma "bank" item, then present per format.
-  const dilemmaItems = await generateVariantItems("ethical", templateItems);
-  const dilemmas = dilemmaItems.filter((it) => it.type === "dilemma");
+  // Ethical: generate a fresh dilemma "bank" of the chosen size, then present
+  // each scenario in the chosen format.
+  const dilemmas = await generateEthicalBank(templateItems, count);
   if (dilemmas.length === 0) return templateContent(templateItems);
   return dilemmas.map((d) =>
     format === "written" ? buildEthicalWritten(d) : withAllowNote(buildPrincipleMcq(d), format === "hybrid"),
