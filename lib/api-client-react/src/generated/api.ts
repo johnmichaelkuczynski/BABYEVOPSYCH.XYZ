@@ -2224,7 +2224,7 @@ export const getGetGradebookUrl = () => {
 }
 
 /**
- * @summary Course gradebook (coursework 80% + diagnostics 20%)
+ * @summary Course gradebook (coursework only; diagnostics are practice and never affect the grade)
  */
 export const getGradebook = async ( options?: RequestInit): Promise<Gradebook> => {
 
@@ -2271,7 +2271,7 @@ export type GetGradebookQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Course gradebook (coursework 80% + diagnostics 20%)
+ * @summary Course gradebook (coursework only; diagnostics are practice and never affect the grade)
  */
 
 export function useGetGradebook<TData = Awaited<ReturnType<typeof getGradebook>>, TError = ErrorType<unknown>>(

@@ -10,6 +10,6 @@ export type GradebookReasoningItemInstrument = typeof GradebookReasoningItemInst
 
 
 export const GradebookReasoningItemInstrument = {
-  ethical: 'ethical',
-  critical: 'critical',
+  subject: 'subject',
+  reasoning: 'reasoning',
 } as const;

@@ -22,19 +22,4 @@ export interface ReasoningItem {
      * @nullable
      */
   allowNote?: boolean | null;
-  /**
-     * For dilemma items — the possible decisions on the scenario.
-     * @nullable
-     */
-  decisionOptions?: string[] | null;
-  /**
-     * For dilemma items — statements to rate by importance and rank.
-     * @nullable
-     */
-  considerations?: string[] | null;
-  /**
-     * For dilemma items — how many top considerations to rank.
-     * @nullable
-     */
-  rankCount?: number | null;
 }

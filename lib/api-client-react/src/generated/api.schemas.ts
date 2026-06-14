@@ -442,19 +442,18 @@ export type ReasoningAssessmentSummaryInstrument = typeof ReasoningAssessmentSum
 
 
 export const ReasoningAssessmentSummaryInstrument = {
-  ethical: 'ethical',
-  critical: 'critical',
+  subject: 'subject',
+  reasoning: 'reasoning',
 } as const;
 
 export type ReasoningAssessmentSummaryPhase = typeof ReasoningAssessmentSummaryPhase[keyof typeof ReasoningAssessmentSummaryPhase];
 
 
 export const ReasoningAssessmentSummaryPhase = {
-  baseline: 'baseline',
-  unit1: 'unit1',
-  unit2: 'unit2',
-  unit3: 'unit3',
-  unit4: 'unit4',
+  before: 'before',
+  during1: 'during1',
+  during2: 'during2',
+  after: 'after',
 } as const;
 
 export type ReasoningAssessmentSummaryStatus = typeof ReasoningAssessmentSummaryStatus[keyof typeof ReasoningAssessmentSummaryStatus];
@@ -483,7 +482,6 @@ export type ReasoningItemType = typeof ReasoningItemType[keyof typeof ReasoningI
 
 
 export const ReasoningItemType = {
-  dilemma: 'dilemma',
   mcq: 'mcq',
   short_answer: 'short_answer',
 } as const;
@@ -503,40 +501,24 @@ export interface ReasoningItem {
      * @nullable
      */
   allowNote?: boolean | null;
-  /**
-     * For dilemma items — the possible decisions on the scenario.
-     * @nullable
-     */
-  decisionOptions?: string[] | null;
-  /**
-     * For dilemma items — statements to rate by importance and rank.
-     * @nullable
-     */
-  considerations?: string[] | null;
-  /**
-     * For dilemma items — how many top considerations to rank.
-     * @nullable
-     */
-  rankCount?: number | null;
 }
 
 export type ReasoningAssessmentInstrument = typeof ReasoningAssessmentInstrument[keyof typeof ReasoningAssessmentInstrument];
 
 
 export const ReasoningAssessmentInstrument = {
-  ethical: 'ethical',
-  critical: 'critical',
+  subject: 'subject',
+  reasoning: 'reasoning',
 } as const;
 
 export type ReasoningAssessmentPhase = typeof ReasoningAssessmentPhase[keyof typeof ReasoningAssessmentPhase];
 
 
 export const ReasoningAssessmentPhase = {
-  baseline: 'baseline',
-  unit1: 'unit1',
-  unit2: 'unit2',
-  unit3: 'unit3',
-  unit4: 'unit4',
+  before: 'before',
+  during1: 'during1',
+  during2: 'during2',
+  after: 'after',
 } as const;
 
 export interface ReasoningAssessment {
@@ -595,7 +577,6 @@ export type ReasoningReviewItemType = typeof ReasoningReviewItemType[keyof typeo
 
 
 export const ReasoningReviewItemType = {
-  dilemma: 'dilemma',
   mcq: 'mcq',
   short_answer: 'short_answer',
 } as const;
@@ -662,26 +643,6 @@ export interface ReasoningReviewItem {
      * @nullable
      */
   rationale?: string | null;
-  /**
-     * dilemma — the possible decisions.
-     * @nullable
-     */
-  decisionOptions?: string[] | null;
-  /**
-     * dilemma — the decision the student chose.
-     * @nullable
-     */
-  decisionIndex?: number | null;
-  /**
-     * dilemma — the considerations presented.
-     * @nullable
-     */
-  considerations?: string[] | null;
-  /**
-     * dilemma — consideration indices the student ranked most-important first.
-     * @nullable
-     */
-  ranking?: number[] | null;
 }
 
 export interface ReasoningAttemptState {
@@ -725,7 +686,7 @@ export interface ReasoningAttemptState {
      * @nullable
      */
   review?: ReasoningReviewItem[] | null;
-  /** The exact items to present for THIS attempt. The first take uses the seeded template; each retake returns freshly generated questions of the same kind (same instrument, skill areas, and structure). */
+  /** The exact items to present for THIS attempt. Every attempt — first take and every retake — returns freshly generated questions of the same kind (same instrument and phase), so no question is ever repeated. */
   items: ReasoningItem[];
 }
 
@@ -746,21 +707,6 @@ export interface ReasoningResponseInput {
      * @nullable
      */
   note?: string | null;
-  /**
-     * dilemma — chosen decision index.
-     * @nullable
-     */
-  decisionIndex?: number | null;
-  /**
-     * dilemma — importance rating (0-4) per consideration, by index.
-     * @nullable
-     */
-  ratings?: number[] | null;
-  /**
-     * dilemma — consideration indices ranked most-important first.
-     * @nullable
-     */
-  ranking?: number[] | null;
 }
 
 /**
@@ -875,19 +821,18 @@ export type GradebookReasoningItemInstrument = typeof GradebookReasoningItemInst
 
 
 export const GradebookReasoningItemInstrument = {
-  ethical: 'ethical',
-  critical: 'critical',
+  subject: 'subject',
+  reasoning: 'reasoning',
 } as const;
 
 export type GradebookReasoningItemPhase = typeof GradebookReasoningItemPhase[keyof typeof GradebookReasoningItemPhase];
 
 
 export const GradebookReasoningItemPhase = {
-  baseline: 'baseline',
-  unit1: 'unit1',
-  unit2: 'unit2',
-  unit3: 'unit3',
-  unit4: 'unit4',
+  before: 'before',
+  during1: 'during1',
+  during2: 'during2',
+  after: 'after',
 } as const;
 
 export type GradebookReasoningItemStatus = typeof GradebookReasoningItemStatus[keyof typeof GradebookReasoningItemStatus];

@@ -1,6 +1,11 @@
 import { chatText, chatJson } from "./ai";
 import { logger } from "./logger";
-import type { Stage, SkillArea } from "./diagnosticContent";
+import {
+  SUBJECT_FALLBACK,
+  REASONING_FALLBACK,
+  type Instrument,
+  type FallbackMcq,
+} from "./diagnosticContent";
 
 // The response format chosen per attempt:
 //   mc      = multiple-choice only
@@ -8,13 +13,12 @@ import type { Stage, SkillArea } from "./diagnosticContent";
 //   written = brief open written responses
 export type Format = "mc" | "hybrid" | "written";
 
-// How many questions an attempt contains:
-//   short  = a few questions
-//   medium = the standard set (matches the seeded template count)
-//   long   = a thorough set
+// How many questions an attempt contains.
 export type Length = "short" | "medium" | "long";
 
-export type ItemType = "dilemma" | "mcq" | "short_answer";
+export type ItemType = "mcq" | "short_answer";
+
+export type { Instrument } from "./diagnosticContent";
 
 // Shape of a persisted diagnostic item row (payload/scoring are jsonb).
 export interface DiagnosticItemRow {
@@ -32,9 +36,6 @@ export interface ResponseInput {
   selectedIndex?: number | null;
   text?: string | null;
   note?: string | null;
-  decisionIndex?: number | null;
-  ratings?: number[] | null;
-  ranking?: number[] | null;
 }
 
 export interface ReasoningMetric {
@@ -51,7 +52,7 @@ export interface WrittenGrade {
 }
 
 export interface ScoreSummary {
-  instrument: "ethical" | "critical";
+  instrument: Instrument;
   headline: string;
   metrics: ReasoningMetric[];
   // For MCQ items: the model-judged correct option index per item id,
@@ -65,37 +66,16 @@ export interface ScoreSummary {
 
 interface McqScoring {
   correctIndex: number;
-  skillArea?: SkillArea;
 }
 interface ShortAnswerScoring {
   referenceAnswer: string;
   keyPoints?: string[];
-  skillArea?: SkillArea;
-}
-interface DilemmaScoring {
-  stages: Stage[];
-  rankCount: number;
-}
-interface DilemmaPayload {
-  decisionOptions: string[];
-  considerations: string[];
-  rankCount: number;
 }
 
-const SKILL_LABELS: Record<SkillArea, string> = {
-  analysis: "Analysis",
-  inference: "Inference",
-  evaluation: "Evaluation",
-  deduction: "Deduction",
-  induction: "Induction",
-};
-
-// --- Generalized scoring (mcq + short_answer) -----------------------------
-// Used for both instruments in the mc / hybrid / written formats. Dilemma
-// (legacy rate-and-rank) items are scored separately by scoreEthical.
+// --- Scoring (mcq + short_answer) ----------------------------------------
 
 function scoreGeneral(
-  instrument: "ethical" | "critical",
+  instrument: Instrument,
   items: DiagnosticItemRow[],
   responses: ResponseInput[],
   judged: Map<number, number>,
@@ -105,7 +85,6 @@ function scoreGeneral(
   let credit = 0; // weighted (1 / 0.5 / 0)
   let fullyCorrect = 0; // count of fully-correct items, for the headline
   const total = items.length;
-  const perSkill = new Map<SkillArea, { correct: number; total: number }>();
   const correctByItem: Record<number, number> = {};
   const writtenByItem: Record<number, WrittenGrade> = {};
 
@@ -120,14 +99,7 @@ function scoreGeneral(
         credit += 1;
         fullyCorrect += 1;
       }
-      if (scoring.skillArea) {
-        const bucket = perSkill.get(scoring.skillArea) ?? { correct: 0, total: 0 };
-        bucket.total += 1;
-        if (ok) bucket.correct += 1;
-        perSkill.set(scoring.skillArea, bucket);
-      }
-    } else if (item.type === "short_answer") {
-      const scoring = item.scoring as ShortAnswerScoring;
+    } else {
       const grade = written.get(item.id) ?? {
         verdict: "incorrect" as WrittenVerdict,
         rationale: "No response.",
@@ -136,12 +108,6 @@ function scoreGeneral(
       const value = grade.verdict === "correct" ? 1 : grade.verdict === "partial" ? 0.5 : 0;
       credit += value;
       if (grade.verdict === "correct") fullyCorrect += 1;
-      if (scoring.skillArea) {
-        const bucket = perSkill.get(scoring.skillArea) ?? { correct: 0, total: 0 };
-        bucket.total += 1;
-        if (grade.verdict === "correct") bucket.correct += 1;
-        perSkill.set(scoring.skillArea, bucket);
-      }
     }
   }
 
@@ -149,25 +115,35 @@ function scoreGeneral(
   const metrics: ReasoningMetric[] = [
     { label: "Overall", value: `${fullyCorrect} / ${total} (${percent}%)` },
   ];
-  for (const skill of Object.keys(SKILL_LABELS) as SkillArea[]) {
-    const b = perSkill.get(skill);
-    if (!b) continue;
-    metrics.push({ label: SKILL_LABELS[skill], value: `${b.correct} / ${b.total}` });
-  }
-
-  const headline =
-    instrument === "critical"
-      ? `You answered ${fullyCorrect} of ${total} soundly (${percent}%).`
-      : `Your reasoning was principled on ${fullyCorrect} of ${total} (${percent}%).`;
-
+  const headline = `You answered ${fullyCorrect} of ${total} correctly (${percent}%).`;
   return { instrument, headline, metrics, correctByItem, writtenByItem };
+}
+
+export function scoreAssessment(
+  instrument: Instrument,
+  items: DiagnosticItemRow[],
+  responses: ResponseInput[],
+  judged?: Map<number, number>,
+  written?: Map<number, WrittenGrade>,
+): ScoreSummary {
+  return scoreGeneral(
+    instrument,
+    items,
+    responses,
+    judged ?? new Map(),
+    written ?? new Map(),
+  );
 }
 
 // Independently determine the genuinely correct option for each MCQ, using the
 // model's own reasoning rather than trusting the stored answer key. The stored
 // key is passed only as a fallible hint. Returns a map of item id -> correct
 // option index; on any failure it falls back to the stored key per item.
-export async function judgeCritical(
+//
+// Only meaningful for GENERAL-REASONING MCQs, whose answers follow from the
+// question itself. Subject-specific MCQs depend on the course's own lecture
+// content (not generic knowledge), so those trust the generated key instead.
+export async function judgeMcq(
   items: DiagnosticItemRow[],
 ): Promise<Map<number, number>> {
   const result = new Map<number, number>();
@@ -182,7 +158,7 @@ export async function judgeCritical(
       answers: { id: number; correctIndex: number }[];
     }>(
       [
-        "You are an expert in critical reasoning, logic, and argument analysis. For each multiple-choice question, determine which single option is GENUINELY correct, reasoning from first principles.",
+        "You are an expert in reasoning, logic, and problem-solving. For each multiple-choice question, determine which single option is GENUINELY correct, reasoning carefully from the information in the question itself.",
         "A `hint_index` is provided per question — it is the answer key currently stored in the system, but it MAY BE WRONG. Treat it only as a fallible hint; if your own analysis shows a different option is correct, return that index instead.",
         "Return exactly one 0-based option index per question id.",
         'Output strict JSON {"answers": [{"id": number, "correctIndex": number}]} with one entry for every question id provided.',
@@ -209,109 +185,9 @@ export async function judgeCritical(
       }
     }
   } catch (err) {
-    logger.warn({ err }, "judgeCritical failed; falling back to stored keys");
+    logger.warn({ err }, "judgeMcq failed; falling back to stored keys");
   }
   return result;
-}
-
-// --- Ethical reasoning (DIT-style) scoring --------------------------------
-// Principled-reasoning ("P") index: weight the ranked postconventional
-// considerations. Top rank gets the most weight; P-index is the share of the
-// maximum possible postconventional weight, scaled 0–100.
-
-function scoreEthical(
-  items: DiagnosticItemRow[],
-  responses: ResponseInput[],
-): ScoreSummary {
-  const byItem = new Map(responses.map((r) => [r.itemId, r]));
-  let pcWeight = 0;
-  let maxWeight = 0;
-  let mWeight = 0;
-  let pWeight = 0;
-  let xRankedHigh = false;
-  let totalDilemmas = 0;
-  let decided = 0;
-
-  for (const item of items) {
-    if (item.type !== "dilemma") continue;
-    totalDilemmas += 1;
-    const scoring = item.scoring as DilemmaScoring;
-    const rankCount = scoring.rankCount;
-    const stages = scoring.stages;
-    const resp = byItem.get(item.id);
-
-    if (resp && typeof resp.decisionIndex === "number") decided += 1;
-
-    // Weights for the ranked slots: rankCount, rankCount-1, ... 1.
-    for (let slot = 0; slot < rankCount; slot++) {
-      maxWeight += rankCount - slot;
-    }
-
-    const ranking = (resp?.ranking ?? []).slice(0, rankCount);
-    ranking.forEach((consIndex, slot) => {
-      const weight = rankCount - slot;
-      const stage = stages[consIndex];
-      if (stage === "PC") pcWeight += weight;
-      else if (stage === "M") mWeight += weight;
-      else if (stage === "P") pWeight += weight;
-      else if (stage === "X") xRankedHigh = true;
-    });
-  }
-
-  const pIndex = maxWeight > 0 ? Math.round((pcWeight / maxWeight) * 100) : 0;
-  const norms = maxWeight > 0 ? Math.round((mWeight / maxWeight) * 100) : 0;
-  const personal = maxWeight > 0 ? Math.round((pWeight / maxWeight) * 100) : 0;
-
-  const metrics: ReasoningMetric[] = [
-    {
-      label: "Principled-judgment index",
-      value: `${pIndex} / 100`,
-      detail: "Weight you gave to principle-based considerations when ranking.",
-    },
-    { label: "Maintaining-norms emphasis", value: `${norms}%` },
-    { label: "Personal-interest emphasis", value: `${personal}%` },
-    {
-      label: "Scenarios decided",
-      value: `${decided} / ${totalDilemmas}`,
-    },
-  ];
-  if (xRankedHigh) {
-    metrics.push({
-      label: "Reliability check",
-      value: "Review",
-      detail:
-        "A non-substantive consideration was ranked among your top items — read each consideration carefully.",
-    });
-  }
-
-  return {
-    instrument: "ethical",
-    headline:
-      pIndex >= 60
-        ? `Your principled-judgment index is ${pIndex}/100 — you weighted principle-based considerations heavily.`
-        : `Your principled-judgment index is ${pIndex}/100.`,
-    metrics,
-  };
-}
-
-export function scoreAssessment(
-  instrument: "ethical" | "critical",
-  items: DiagnosticItemRow[],
-  responses: ResponseInput[],
-  judged?: Map<number, number>,
-  written?: Map<number, WrittenGrade>,
-): ScoreSummary {
-  // Legacy rate-and-rank dilemma attempts keep their original DIT-style scoring.
-  if (items.some((it) => it.type === "dilemma")) {
-    return scoreEthical(items, responses);
-  }
-  return scoreGeneral(
-    instrument,
-    items,
-    responses,
-    judged ?? new Map(),
-    written ?? new Map(),
-  );
 }
 
 // --- Written (short_answer) grading --------------------------------------
@@ -396,35 +272,19 @@ export async function gradeWritten(
 // --- Written feedback (AI with deterministic fallback) --------------------
 
 function deterministicFeedback(
-  instrument: "ethical" | "critical",
+  instrument: Instrument,
   summary: ScoreSummary,
 ): string {
-  if (instrument === "critical") {
-    const overall = summary.metrics.find((m) => m.label === "Overall");
-    const weak = summary.metrics
-      .filter((m) => m.label !== "Overall")
-      .filter((m) => {
-        const [c, t] = m.value.split(" / ").map((n) => parseInt(n, 10));
-        return Number.isFinite(c) && Number.isFinite(t) && t > 0 && c / t < 0.5;
-      })
-      .map((m) => m.label);
-    const weakLine =
-      weak.length > 0
-        ? ` Your strongest opportunity for growth is in ${weak.join(", ")}; revisit how to spot assumptions and what conclusions the evidence actually licenses.`
-        : " Your reasoning was solid across the analysis, inference, evaluation, deduction, and induction items.";
-    return `Thank you for completing this critical-reasoning checkpoint. ${overall?.value ? `You scored ${overall.value}.` : ""}${weakLine} Remember that a strong answer follows only from the reasons given — distinguish what is stated, what is assumed, and what is merely plausible.`;
-  }
   const overall = summary.metrics.find((m) => m.label === "Overall");
-  const p = summary.metrics.find((m) => m.label.startsWith("Principled"));
-  if (p) {
-    // Legacy rate-and-rank attempt.
-    return `Thank you for working through this everyday-judgment scenario. Your principled-judgment index was ${p.value}. A high index means you gave the most weight to considerations about honesty, fairness, and the people affected by your choice rather than to convenience or self-interest. There is no single correct answer here — what matters is whether your decision rests on reasons you could defend to anyone affected by it.`;
+  const scoreLine = overall?.value ? `You answered ${overall.value}. ` : "";
+  if (instrument === "subject") {
+    return `Thanks for taking this evolutionary-psychology check. ${scoreLine}Use it to see which ideas from the lectures are sticking and which ones are worth a second look. It's practice only and never affects your course grade.`;
   }
-  return `Thank you for working through this everyday-judgment scenario. ${overall?.value ? `You reasoned soundly on ${overall.value} of the prompts. ` : ""}What matters most is whether your choice rests on reasons you could defend to anyone affected by it — honesty, fairness, and the people involved — rather than convenience or self-interest.`;
+  return `Thanks for taking this reasoning check. ${scoreLine}It measures how you work through unfamiliar problems, not what you've memorized. It's practice only and never affects your course grade.`;
 }
 
 export async function generateFeedback(
-  instrument: "ethical" | "critical",
+  instrument: Instrument,
   assessmentTitle: string,
   summary: ScoreSummary,
 ): Promise<string> {
@@ -432,9 +292,9 @@ export async function generateFeedback(
     .map((m) => `- ${m.label}: ${m.value}${m.detail ? ` (${m.detail})` : ""}`)
     .join("\n");
   const system =
-    instrument === "ethical"
-      ? "You are an instructor giving warm, specific feedback on a student's professional-judgment assessment about a realistic everyday-judgment scenario. 2-3 sentences. Comment on how principled their reasoning was and offer one concrete way to deepen it. Do not invent numbers; use only the metrics provided. Plain prose, no markdown headings."
-      : "You are a critical-thinking instructor giving warm, specific feedback on a student's reasoning assessment. 2-3 sentences. Note overall performance and any skill areas to strengthen, using only the metrics provided. Plain prose, no markdown headings.";
+    instrument === "subject"
+      ? "You are an encouraging instructor giving warm, specific feedback on a student's evolutionary-psychology knowledge check. 2-3 sentences. Use only the metrics provided; do not invent numbers. Note that this is practice and never affects their course grade. Plain prose, no markdown headings."
+      : "You are an encouraging instructor giving warm, specific feedback on a student's general-reasoning check (genuine reasoning, not memorization or fallacy-spotting). 2-3 sentences. Use only the metrics provided; do not invent numbers. Note that this is practice and never affects their course grade. Plain prose, no markdown headings.";
   const user = `Assessment: ${assessmentTitle}\nResult summary: ${summary.headline}\nMetrics:\n${metricsText}`;
   try {
     const text = await chatText(system, user);
@@ -445,13 +305,12 @@ export async function generateFeedback(
   return deterministicFeedback(instrument, summary);
 }
 
-// --- Retake variant generation ------------------------------------------
-// On a retake we generate a fresh set of items of the SAME KIND as the seeded
-// template: same instrument, same item count, the same skill areas (critical)
-// or the same distribution of consideration stages (ethical), and the same
-// answer/ranking structure — but different scenarios and questions. If the
-// model is unavailable or returns an unusable shape, we fall back to the
-// template items so a retake never blocks.
+// --- Attempt item generation --------------------------------------------
+// Every attempt's items are generated fresh (so no question ever repeats). The
+// caller passes the chosen format/length, the subject lecture context (for
+// subject assessments), and the prompts already used by prior attempts so the
+// generator can avoid repeats. On any failure we fall back to a static bank so
+// an attempt is never blocked.
 
 // Content of an item ready to be inserted (no id / attemptId / position yet).
 export interface GeneratedItemContent {
@@ -460,8 +319,6 @@ export interface GeneratedItemContent {
   payload: unknown;
   scoring: unknown;
 }
-
-const STAGE_SET: Stage[] = ["P", "M", "PC", "X"];
 
 function rotateOptions(options: string[]): { options: string[]; correctIndex: number } {
   const n = options.length;
@@ -473,304 +330,126 @@ function rotateOptions(options: string[]): { options: string[]; correctIndex: nu
   return { options: rotated, correctIndex: off };
 }
 
-function shuffle<T>(arr: T[]): T[] {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j]!, a[i]!];
+// How many questions to present for a chosen length.
+function targetCount(length: Length): number {
+  if (length === "short") return 4;
+  if (length === "long") return 14;
+  return 8;
+}
+
+interface GenParams {
+  instrument: Instrument;
+  count: number;
+  subjectContext?: string;
+  excludePrompts: string[];
+}
+
+const SUBJECT_MCQ_SYSTEM = [
+  "You are an assessment author writing ORIGINAL multiple-choice questions that test a student's understanding of the evolutionary-psychology course material provided.",
+  "Every question MUST be answerable from the provided material and measure understanding of its ideas (not obscure trivia). Each has exactly four answer options with one unambiguously best answer.",
+  "List the CORRECT option FIRST, followed by three plausible but wrong distractors.",
+  "Write the questions in plain, friendly language suitable for a general audience.",
+  'Respond ONLY as JSON: {"items":[{"prompt":"...","options":["correct","wrong","wrong","wrong"]}]}.',
+].join("\n");
+
+const SUBJECT_WRITTEN_SYSTEM = [
+  "You are an assessment author writing ORIGINAL short open-ended questions that test understanding of the evolutionary-psychology course material provided.",
+  "Every question MUST be answerable from the provided material in ONE or TWO sentences and measure understanding (not recall of obscure detail).",
+  "Provide a concise model answer and 1-3 key points a correct answer should contain.",
+  "Write in plain, friendly language. Keep prompts short and concrete.",
+  'Respond ONLY as JSON: {"items":[{"prompt":"...","referenceAnswer":"...","keyPoints":["..."]}]}.',
+].join("\n");
+
+const REASONING_MCQ_SYSTEM = [
+  "You are an assessment author writing ORIGINAL general-reasoning multiple-choice questions that measure GENUINE reasoning: drawing valid conclusions from given information, working through multi-step logical or quantitative problems, recognizing structure and relationships, and reasoning carefully about novel everyday situations.",
+  "Do NOT write 'critical thinking' questions about spotting logical fallacies, judging source credibility, media literacy, or being appropriately skeptical. Do NOT test recall, general knowledge, or course content. Every question must be fully solvable using only the information stated in the question.",
+  "Each question has exactly four answer options with one unambiguously correct answer that follows by reasoning.",
+  "List the CORRECT option FIRST, followed by three plausible but wrong distractors. Use varied, fresh scenarios.",
+  'Respond ONLY as JSON: {"items":[{"prompt":"...","options":["correct","wrong","wrong","wrong"]}]}.',
+].join("\n");
+
+const REASONING_WRITTEN_SYSTEM = [
+  "You are an assessment author writing ORIGINAL general-reasoning open-ended questions that measure GENUINE reasoning: drawing valid conclusions, working through multi-step problems, and reasoning carefully about novel situations.",
+  "Do NOT write 'critical thinking' questions about logical fallacies, source credibility, media literacy, or skepticism. Do NOT test recall or general knowledge. Every question must be solvable using only the information stated, answerable in ONE or TWO sentences.",
+  "Provide a concise model answer and 1-3 key points a correct answer should contain. Use varied, fresh scenarios.",
+  'Respond ONLY as JSON: {"items":[{"prompt":"...","referenceAnswer":"...","keyPoints":["..."]}]}.',
+].join("\n");
+
+function buildUserPrompt(p: GenParams): string {
+  const parts: string[] = [];
+  if (p.instrument === "subject" && p.subjectContext) {
+    parts.push(`COURSE MATERIAL (base every question on this):\n${p.subjectContext}`);
   }
-  return a;
+  parts.push(`Write exactly ${p.count} questions.`);
+  if (p.excludePrompts.length > 0) {
+    parts.push(
+      "Do NOT duplicate or paraphrase any of these already-used questions:\n" +
+        JSON.stringify(p.excludePrompts.slice(-40)),
+    );
+  }
+  return parts.join("\n\n");
 }
 
-// Return the template items as insertable content (used as the fallback when
-// generation fails, and as the structural blueprint for generation).
-function templateContent(items: DiagnosticItemRow[]): GeneratedItemContent[] {
-  return items.map((it) => ({
-    type: it.type,
-    prompt: it.prompt,
-    payload: it.payload,
-    scoring: it.scoring,
-  }));
-}
-
-async function generateCriticalVariant(
-  items: DiagnosticItemRow[],
+async function generateMcqItems(
+  p: GenParams,
+  allowNote: boolean,
 ): Promise<GeneratedItemContent[]> {
-  // Preserve the exact sequence of skill areas from the template.
-  const skills = items.map((it) => (it.scoring as McqScoring).skillArea);
-  const examplePrompts = items.slice(0, 3).map((it) => it.prompt);
-  const system =
-    "You are an assessment author writing ORIGINAL critical-thinking multiple-choice questions. " +
-    "Each question must measure reasoning (not recall), have exactly four answer options with one unambiguously best answer, and target the requested skill area. " +
-    "List the CORRECT option FIRST, followed by three plausible but wrong distractors. " +
-    "Write fresh questions on varied everyday topics — do NOT reuse the example wording. " +
-    'Respond ONLY as JSON of the form {"items":[{"prompt":"...","options":["correct","wrong","wrong","wrong"],"skillArea":"analysis"}]}.';
-  const user =
-    `Write ${skills.length} new questions, one per skill area in THIS exact order: ${JSON.stringify(skills)}.\n` +
-    `Skill areas mean: analysis (identify assumptions/claims/conclusions), inference (what the evidence supports), evaluation (judge argument quality/sources), deduction (what necessarily follows), induction (strength of generalization/causal/analogy).\n` +
-    `For style only (do NOT copy these): ${JSON.stringify(examplePrompts)}.`;
+  const system = p.instrument === "subject" ? SUBJECT_MCQ_SYSTEM : REASONING_MCQ_SYSTEM;
   const out = await chatJson<{
-    items?: { prompt?: unknown; options?: unknown; skillArea?: unknown }[];
-  }>(system, user);
+    items?: { prompt?: unknown; options?: unknown }[];
+  }>(system, buildUserPrompt(p));
   const raw = out.items;
-  if (!Array.isArray(raw) || raw.length !== skills.length) {
-    throw new Error("critical variant: wrong item count");
+  if (!Array.isArray(raw) || raw.length < p.count) {
+    throw new Error("mcq generation: too few items");
   }
-  return raw.map((q, i) => {
-    const expectedSkill = skills[i]!;
+  return raw.slice(0, p.count).map((q) => {
     const prompt = q.prompt;
     const options = q.options;
     if (typeof prompt !== "string" || prompt.trim().length < 8) {
-      throw new Error("critical variant: bad prompt");
+      throw new Error("mcq generation: bad prompt");
     }
     if (
       !Array.isArray(options) ||
       options.length !== 4 ||
       !options.every((o) => typeof o === "string" && o.trim().length > 0)
     ) {
-      throw new Error("critical variant: bad options");
+      throw new Error("mcq generation: bad options");
     }
-    // Always pin the skill to the template position so the retake preserves
-    // the exact skill-area order — never trust the model to keep it.
-    const { options: rotated, correctIndex } = rotateOptions(options as string[]);
+    const { options: rotated, correctIndex } = rotateOptions(
+      (options as string[]).map((o) => o.trim()),
+    );
     return {
       type: "mcq" as const,
       prompt: prompt.trim(),
-      payload: { options: rotated },
-      scoring: { correctIndex, skillArea: expectedSkill },
+      payload: { options: rotated, allowNote },
+      scoring: { correctIndex },
     };
   });
 }
 
-async function generateEthicalVariant(
-  items: DiagnosticItemRow[],
-): Promise<GeneratedItemContent[]> {
-  const dilemma = items.find((it) => it.type === "dilemma");
-  if (!dilemma) throw new Error("ethical variant: no template dilemma");
-  const scoring = dilemma.scoring as DilemmaScoring;
-  const payload = dilemma.payload as DilemmaPayload;
-  // Shuffle the stage order so the new item maps stages to different slots.
-  const stages = shuffle(scoring.stages);
-  const considerationCount = stages.length;
-  const decisionCount = payload.decisionOptions.length;
+async function generateWrittenItems(p: GenParams): Promise<GeneratedItemContent[]> {
   const system =
-    "You are an assessment author writing an ORIGINAL everyday-judgment scenario. " +
-    "Produce a realistic, self-contained scenario about a named person (e.g. a student, a friend, a teammate) facing a hard decision where legitimate considerations conflict — think honesty, fairness, loyalty, privacy, peer pressure, or owning up to a mistake. Then write a set of considerations someone might weigh. " +
-    "Each consideration is tagged with a hidden stage you must honor:\n" +
-    "- P = appeals to the decider's personal interest, image, convenience, or job security\n" +
-    "- M = appeals to company policy, rules, a manager's request, or one's formal role (maintaining norms)\n" +
-    "- PC = appeals to impartial principles: honesty, fairness, and the rights and interests of everyone affected by the decision (principled)\n" +
-    "- X = a nonsensical or irrelevant statement that sounds sophisticated but says nothing (a reliability check)\n" +
-    "Write a DISTINCT scenario from any example. " +
-    'Respond ONLY as JSON: {"prompt":"scenario text ending with the yes/no decision question","decisionOptions":["do X","Can\'t decide","do opposite"],"considerations":[{"text":"...","stage":"PC"}]}.';
-  const user =
-    `Write ONE new scenario with exactly ${decisionCount} decision options (the middle one should be "Can't decide") ` +
-    `and exactly ${considerationCount} considerations whose stages, IN THIS ORDER, are: ${JSON.stringify(stages)}.\n` +
-    `Each consideration's "stage" must match the stage at its position. Make each consideration a single clause a person might weigh.\n` +
-    `For style only (do NOT copy it): ${JSON.stringify(dilemma.prompt.slice(0, 200))}`;
+    p.instrument === "subject" ? SUBJECT_WRITTEN_SYSTEM : REASONING_WRITTEN_SYSTEM;
   const out = await chatJson<{
-    prompt?: unknown;
-    decisionOptions?: unknown;
-    considerations?: { text?: unknown; stage?: unknown }[];
-  }>(system, user);
-  const prompt = out.prompt;
-  const decisionOptions = out.decisionOptions;
-  const cons = out.considerations;
-  if (typeof prompt !== "string" || prompt.trim().length < 40) {
-    throw new Error("ethical variant: bad prompt");
-  }
-  if (
-    !Array.isArray(decisionOptions) ||
-    decisionOptions.length !== decisionCount ||
-    !decisionOptions.every((o) => typeof o === "string" && o.trim().length > 0)
-  ) {
-    throw new Error("ethical variant: bad decisionOptions");
-  }
-  if (!Array.isArray(cons) || cons.length !== considerationCount) {
-    throw new Error("ethical variant: wrong consideration count");
-  }
-  const texts: string[] = [];
-  const outStages: Stage[] = [];
-  cons.forEach((c, i) => {
-    const text = c.text;
-    if (typeof text !== "string" || text.trim().length < 4) {
-      throw new Error("ethical variant: bad consideration text");
-    }
-    // Trust the requested stage order; honor the model's only if valid & equal.
-    const stage = STAGE_SET.includes(c.stage as Stage)
-      ? (c.stage as Stage)
-      : stages[i]!;
-    texts.push(text.trim());
-    outStages.push(stage);
-  });
-  // Guarantee the stage multiset is preserved even if the model relabeled some.
-  const want = [...stages].sort().join(",");
-  const got = [...outStages].sort().join(",");
-  const finalStages = want === got ? outStages : stages;
-  return [
-    {
-      type: "dilemma",
-      prompt: prompt.trim(),
-      payload: {
-        decisionOptions: decisionOptions.map((o) => (o as string).trim()),
-        considerations: texts,
-        rankCount: scoring.rankCount,
-      },
-      scoring: { stages: finalStages, rankCount: scoring.rankCount },
-    },
-  ];
-}
-
-// Generate a fresh variant of an assessment's items for a retake. Falls back to
-// the template items (so the attempt is never blocked) if generation fails.
-export async function generateVariantItems(
-  instrument: "ethical" | "critical",
-  templateItems: DiagnosticItemRow[],
-): Promise<GeneratedItemContent[]> {
-  if (templateItems.length === 0) return [];
-  try {
-    const generated =
-      instrument === "critical"
-        ? await generateCriticalVariant(templateItems)
-        : await generateEthicalVariant(templateItems);
-    if (generated.length === templateItems.length) return generated;
-    logger.warn(
-      { instrument, want: templateItems.length, got: generated.length },
-      "Reasoning variant: count mismatch, using template",
-    );
-  } catch (err) {
-    logger.warn(
-      { instrument, err: err instanceof Error ? err.message : String(err) },
-      "Reasoning variant generation failed, using template items",
-    );
-  }
-  return templateContent(templateItems);
-}
-
-// --- Format-aware attempt items -----------------------------------------
-// The generators above produce the "question bank" (critical MCQs, an ethical
-// dilemma). buildAttemptItems transforms that bank into the items the student
-// actually sees for the chosen response format:
-//   mc      — multiple choice only
-//   hybrid  — multiple choice plus an optional written note
-//   written — brief open written answers
-
-function withAllowNote(item: GeneratedItemContent, allowNote: boolean): GeneratedItemContent {
-  const payload = (item.payload ?? {}) as Record<string, unknown>;
-  return { ...item, payload: { ...payload, allowNote } };
-}
-
-// From a generated dilemma, build one principle-identification MCQ: the student
-// picks the consideration that is the strongest, most principled basis for the
-// decision. The principled (PC) consideration is correct; one each of the
-// personal-interest (P), norms (M), and reliability-check (X) considerations
-// serve as distractors. This is well-grounded in the stage tags (unlike the
-// raw yes/no decision, which has no stored "correct" side).
-function buildPrincipleMcq(dilemma: GeneratedItemContent): GeneratedItemContent {
-  const payload = dilemma.payload as DilemmaPayload;
-  const scoring = dilemma.scoring as DilemmaScoring;
-  const cons = payload.considerations;
-  const stages = scoring.stages;
-  const firstOf = (s: Stage): string | undefined => {
-    const i = stages.findIndex((st) => st === s);
-    return i >= 0 ? cons[i] : undefined;
-  };
-  const correctText = firstOf("PC") ?? cons[0]!;
-  const distractors = (["M", "P", "X"] as Stage[])
-    .map(firstOf)
-    .filter((t): t is string => !!t && t !== correctText);
-  let pool = [correctText, ...distractors];
-  // Pad from any remaining considerations if a stage was missing.
-  for (const c of cons) {
-    if (pool.length >= 4) break;
-    if (!pool.includes(c)) pool.push(c);
-  }
-  pool = pool.slice(0, 4);
-  const options = shuffle(pool);
-  const correctIndex = options.indexOf(correctText);
-  return {
-    type: "mcq",
-    prompt: `${dilemma.prompt}\n\nWhich consideration is the strongest, most principled basis for deciding what to do?`,
-    payload: { options, allowNote: false },
-    scoring: { correctIndex },
-  };
-}
-
-// From a generated dilemma, build one open written prompt: state the decision
-// and the main reason. The principled considerations are the model answer's key
-// points; the grader judges leniently for principled reasoning.
-function buildEthicalWritten(dilemma: GeneratedItemContent): GeneratedItemContent {
-  const payload = dilemma.payload as DilemmaPayload;
-  const scoring = dilemma.scoring as DilemmaScoring;
-  const keyPoints = payload.considerations.filter((_, i) => scoring.stages[i] === "PC");
-  return {
-    type: "short_answer",
-    prompt: `${dilemma.prompt}\n\nIn a sentence or two: what should they do, and what is the main reason?`,
-    payload: {},
-    scoring: {
-      referenceAnswer:
-        "A defensible choice justified by impartial principles — honesty, fairness, and the interests of everyone affected — rather than convenience, self-interest, or simply following a rule.",
-      keyPoints: keyPoints.length > 0 ? keyPoints : undefined,
-    },
-  };
-}
-
-// Transform template critical MCQs into open written items as a fallback when
-// dedicated written-question generation is unavailable.
-function criticalWrittenFallback(items: DiagnosticItemRow[]): GeneratedItemContent[] {
-  return items
-    .filter((it) => it.type === "mcq")
-    .map((it) => {
-      const payload = it.payload as { options: string[] };
-      const scoring = it.scoring as McqScoring;
-      const reference = payload.options[scoring.correctIndex] ?? payload.options[0]!;
-      return {
-        type: "short_answer" as const,
-        prompt: `${it.prompt}\n\nAnswer in one or two sentences and briefly explain your reasoning.`,
-        payload: {},
-        scoring: {
-          referenceAnswer: reference,
-          keyPoints: [reference],
-          skillArea: scoring.skillArea,
-        },
-      };
-    });
-}
-
-// Generate original open-ended critical-reasoning questions (one per template
-// skill area) with a short model answer and key points for grading.
-async function generateCriticalWritten(
-  items: DiagnosticItemRow[],
-): Promise<GeneratedItemContent[]> {
-  const skills = items.map((it) => (it.scoring as McqScoring).skillArea);
-  const system =
-    "You are an assessment author writing ORIGINAL open-ended critical-thinking questions for busy students. " +
-    "Each question must measure reasoning (not recall), target the requested skill area, and be answerable in ONE or TWO sentences. " +
-    "Provide a concise model answer and 1-3 key points a correct answer should contain. " +
-    "Write fresh questions on varied everyday topics. " +
-    'Respond ONLY as JSON: {"items":[{"prompt":"...","referenceAnswer":"...","keyPoints":["..."],"skillArea":"analysis"}]}.';
-  const user =
-    `Write ${skills.length} questions, one per skill area in THIS exact order: ${JSON.stringify(skills)}.\n` +
-    `Skill areas mean: analysis (identify assumptions/claims/conclusions), inference (what the evidence supports), evaluation (judge argument quality/sources), deduction (what necessarily follows), induction (strength of generalization/causal/analogy).\n` +
-    `Keep prompts short and concrete.`;
-  const out = await chatJson<{
-    items?: { prompt?: unknown; referenceAnswer?: unknown; keyPoints?: unknown; skillArea?: unknown }[];
-  }>(system, user);
+    items?: { prompt?: unknown; referenceAnswer?: unknown; keyPoints?: unknown }[];
+  }>(system, buildUserPrompt(p));
   const raw = out.items;
-  if (!Array.isArray(raw) || raw.length !== skills.length) {
-    throw new Error("critical written: wrong item count");
+  if (!Array.isArray(raw) || raw.length < p.count) {
+    throw new Error("written generation: too few items");
   }
-  return raw.map((q, i) => {
+  return raw.slice(0, p.count).map((q) => {
     const prompt = q.prompt;
     const reference = q.referenceAnswer;
     if (typeof prompt !== "string" || prompt.trim().length < 8) {
-      throw new Error("critical written: bad prompt");
+      throw new Error("written generation: bad prompt");
     }
     if (typeof reference !== "string" || reference.trim().length < 4) {
-      throw new Error("critical written: bad reference answer");
+      throw new Error("written generation: bad reference answer");
     }
     const keyPoints = Array.isArray(q.keyPoints)
-      ? q.keyPoints.filter((k): k is string => typeof k === "string" && k.trim().length > 0).map((k) => k.trim())
+      ? q.keyPoints
+          .filter((k): k is string => typeof k === "string" && k.trim().length > 0)
+          .map((k) => k.trim())
       : undefined;
     return {
       type: "short_answer" as const,
@@ -779,105 +458,95 @@ async function generateCriticalWritten(
       scoring: {
         referenceAnswer: reference.trim(),
         keyPoints: keyPoints && keyPoints.length > 0 ? keyPoints : undefined,
-        skillArea: skills[i]!,
       },
     };
   });
 }
 
-// How many questions to present for a given instrument + chosen length.
-// medium is the standard set ("what you now have"): for critical it matches the
-// seeded template count; short is roughly half (min 3), long is ~1.6x. The
-// ethical instrument's seed is a single scenario, so its counts are fixed to
-// give a meaningful short/medium/long spread.
-function targetCount(
-  instrument: "ethical" | "critical",
-  templateItems: DiagnosticItemRow[],
-  length: Length,
-): number {
-  if (instrument === "ethical") {
-    return length === "short" ? 2 : length === "long" ? 8 : 4;
-  }
-  const base = templateItems.filter((it) => it.type === "mcq").length || 5;
-  if (length === "short") return Math.max(3, Math.round(base / 2));
-  if (length === "long") return Math.round(base * 1.6);
-  return base;
+function bankFor(instrument: Instrument): FallbackMcq[] {
+  return instrument === "subject" ? SUBJECT_FALLBACK : REASONING_FALLBACK;
 }
 
-// Resize a critical (MCQ) template to exactly `n` items by cycling through the
-// template's MCQs. Only the skill-area sequence, item count, and a few example
-// prompts are read downstream, so cycling is safe; on a generation failure the
-// fallback will repeat questions, which is acceptable for a degraded path.
-function resizeCriticalTemplate(items: DiagnosticItemRow[], n: number): DiagnosticItemRow[] {
-  const mcq = items.filter((it) => it.type === "mcq");
-  if (mcq.length === 0) return items.slice(0, n);
-  const out: DiagnosticItemRow[] = [];
-  for (let i = 0; i < n; i++) out.push(mcq[i % mcq.length]!);
+function mcqFallback(
+  instrument: Instrument,
+  count: number,
+  allowNote: boolean,
+): GeneratedItemContent[] {
+  const bank = bankFor(instrument);
+  const out: GeneratedItemContent[] = [];
+  for (let i = 0; i < count; i++) {
+    const b = bank[i % bank.length]!;
+    const { options, correctIndex } = rotateOptions(b.options);
+    out.push({
+      type: "mcq",
+      prompt: b.prompt,
+      payload: { options, allowNote },
+      scoring: { correctIndex },
+    });
+  }
   return out;
 }
 
-// Generate `count` fresh ethical dilemma "bank" items. Each generateVariantItems
-// call yields one dilemma (a fresh scenario, or the template as a fallback), so
-// we run `count` of them in parallel and flatten. Padding only matters in the
-// degenerate case where a call returns no dilemma at all.
-async function generateEthicalBank(
-  templateItems: DiagnosticItemRow[],
-  count: number,
-): Promise<GeneratedItemContent[]> {
-  const batches = await Promise.all(
-    Array.from({ length: count }, () => generateVariantItems("ethical", templateItems)),
-  );
-  const dilemmas = batches.flat().filter((it) => it.type === "dilemma");
-  if (dilemmas.length >= count) return dilemmas.slice(0, count);
-  const fallback = templateContent(templateItems).filter((it) => it.type === "dilemma");
-  while (dilemmas.length < count && fallback.length > 0) {
-    dilemmas.push(fallback[dilemmas.length % fallback.length]!);
+function writtenFallback(instrument: Instrument, count: number): GeneratedItemContent[] {
+  const bank = bankFor(instrument);
+  const out: GeneratedItemContent[] = [];
+  for (let i = 0; i < count; i++) {
+    const b = bank[i % bank.length]!;
+    out.push({
+      type: "short_answer",
+      prompt: `${b.prompt}\n\nAnswer in one or two sentences and briefly explain your reasoning.`,
+      payload: {},
+      scoring: { referenceAnswer: b.options[0]!, keyPoints: [b.options[0]!] },
+    });
   }
-  return dilemmas;
+  return out;
 }
 
-// Build the items a student attempts, given the chosen response format and
-// length. Always returns usable items (falls back to the template/bank on any
-// failure).
-export async function buildAttemptItems(
-  instrument: "ethical" | "critical",
-  format: Format,
-  length: Length,
-  templateItems: DiagnosticItemRow[],
-): Promise<GeneratedItemContent[]> {
-  if (templateItems.length === 0) return [];
-  const count = targetCount(instrument, templateItems, length);
+// Build the items a student attempts. Always returns exactly `count` usable
+// items, generated fresh (falling back to the static bank on any failure).
+export async function buildAttemptItems(params: {
+  instrument: Instrument;
+  format: Format;
+  length: Length;
+  subjectContext?: string;
+  excludePrompts?: string[];
+}): Promise<GeneratedItemContent[]> {
+  const { instrument, format, length, subjectContext } = params;
+  const count = targetCount(length);
+  const gen: GenParams = {
+    instrument,
+    count,
+    subjectContext,
+    excludePrompts: params.excludePrompts ?? [],
+  };
 
-  if (instrument === "critical") {
-    const sized = resizeCriticalTemplate(templateItems, count);
-    if (format === "written") {
-      try {
-        const written = await generateCriticalWritten(sized);
-        if (written.length === sized.length) return written;
-        logger.warn(
-          { want: sized.length, got: written.length },
-          "critical written: count mismatch, using fallback",
-        );
-      } catch (err) {
-        logger.warn(
-          { err: err instanceof Error ? err.message : String(err) },
-          "critical written generation failed, using fallback",
-        );
-      }
-      return criticalWrittenFallback(sized);
+  if (format === "written") {
+    try {
+      const written = await generateWrittenItems(gen);
+      if (written.length === count) return written;
+    } catch (err) {
+      logger.warn(
+        { instrument, err: err instanceof Error ? err.message : String(err) },
+        "written generation failed; using fallback bank",
+      );
     }
-    const mcqs = await generateVariantItems("critical", sized);
-    return mcqs.map((it) => withAllowNote(it, format === "hybrid"));
+    return writtenFallback(instrument, count);
   }
 
-  // Ethical: generate a fresh dilemma "bank" of the chosen size, then present
-  // each scenario in the chosen format.
-  const dilemmas = await generateEthicalBank(templateItems, count);
-  if (dilemmas.length === 0) return templateContent(templateItems);
-  return dilemmas.map((d) =>
-    format === "written" ? buildEthicalWritten(d) : withAllowNote(buildPrincipleMcq(d), format === "hybrid"),
-  );
+  const allowNote = format === "hybrid";
+  try {
+    const mcqs = await generateMcqItems(gen, allowNote);
+    if (mcqs.length === count) return mcqs;
+  } catch (err) {
+    logger.warn(
+      { instrument, err: err instanceof Error ? err.message : String(err) },
+      "mcq generation failed; using fallback bank",
+    );
+  }
+  return mcqFallback(instrument, count, allowNote);
 }
+
+// --- Review + public projection ------------------------------------------
 
 // A per-question review row: the item, what the student answered, and the
 // correct answer. Built after submission so the student can see their work.
@@ -894,10 +563,6 @@ export interface ReviewItem {
   referenceAnswer: string | null;
   verdict: WrittenVerdict | null;
   rationale: string | null;
-  decisionOptions: string[] | null;
-  decisionIndex: number | null;
-  considerations: string[] | null;
-  ranking: number[] | null;
 }
 
 const EMPTY_REVIEW = {
@@ -910,10 +575,6 @@ const EMPTY_REVIEW = {
   referenceAnswer: null,
   verdict: null,
   rationale: null,
-  decisionOptions: null,
-  decisionIndex: null,
-  considerations: null,
-  ranking: null,
 } satisfies Omit<ReviewItem, "itemId" | "type" | "prompt">;
 
 export function buildReview(
@@ -940,37 +601,22 @@ export function buildReview(
         options: payload.options,
         selectedIndex,
         correctIndex,
-        isCorrect:
-          selectedIndex === null ? null : selectedIndex === correctIndex,
+        isCorrect: selectedIndex === null ? null : selectedIndex === correctIndex,
         note: typeof resp?.note === "string" && resp.note.trim() ? resp.note : null,
       };
     }
-    if (item.type === "short_answer") {
-      const scoring = item.scoring as ShortAnswerScoring;
-      const grade = written?.get(item.id);
-      return {
-        ...EMPTY_REVIEW,
-        itemId: item.id,
-        type: "short_answer" as const,
-        prompt: item.prompt,
-        text: typeof resp?.text === "string" && resp.text.trim() ? resp.text : null,
-        referenceAnswer: scoring.referenceAnswer,
-        verdict: grade?.verdict ?? null,
-        rationale: grade?.rationale ?? null,
-        isCorrect: grade ? grade.verdict === "correct" : null,
-      };
-    }
-    const payload = item.payload as DilemmaPayload;
+    const scoring = item.scoring as ShortAnswerScoring;
+    const grade = written?.get(item.id);
     return {
       ...EMPTY_REVIEW,
       itemId: item.id,
-      type: "dilemma" as const,
+      type: "short_answer" as const,
       prompt: item.prompt,
-      decisionOptions: payload.decisionOptions,
-      decisionIndex:
-        typeof resp?.decisionIndex === "number" ? resp.decisionIndex : null,
-      considerations: payload.considerations,
-      ranking: resp?.ranking ?? null,
+      text: typeof resp?.text === "string" && resp.text.trim() ? resp.text : null,
+      referenceAnswer: scoring.referenceAnswer,
+      verdict: grade?.verdict ?? null,
+      rationale: grade?.rationale ?? null,
+      isCorrect: grade ? grade.verdict === "correct" : null,
     };
   });
 }
@@ -987,14 +633,5 @@ export function publicItem(item: DiagnosticItemRow) {
     const payload = item.payload as { options: string[]; allowNote?: boolean };
     return { ...base, options: payload.options, allowNote: payload.allowNote ?? false };
   }
-  if (item.type === "short_answer") {
-    return base;
-  }
-  const payload = item.payload as DilemmaPayload;
-  return {
-    ...base,
-    decisionOptions: payload.decisionOptions,
-    considerations: payload.considerations,
-    rankCount: payload.rankCount,
-  };
+  return base;
 }

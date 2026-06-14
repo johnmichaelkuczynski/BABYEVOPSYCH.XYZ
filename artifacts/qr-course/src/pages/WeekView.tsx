@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen } from "lucide-react";
 import { ReasoningCallout } from "@/components/ReasoningCallout";
 
-const UNIT_PHASES = ["unit1"] as const;
+const UNIT_PHASES = ["after"] as const;
 
 export default function WeekView() {
   const params = useParams();

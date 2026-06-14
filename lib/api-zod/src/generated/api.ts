@@ -594,8 +594,8 @@ export const GenerateReportResponse = zod.object({
  */
 export const ListReasoningAssessmentsResponseItem = zod.object({
   "id": zod.number(),
-  "instrument": zod.enum(['ethical', 'critical']),
-  "phase": zod.enum(['baseline', 'unit1', 'unit2', 'unit3', 'unit4']),
+  "instrument": zod.enum(['subject', 'reasoning']),
+  "phase": zod.enum(['before', 'during1', 'during2', 'after']),
   "title": zod.string(),
   "subtitle": zod.string().nullish(),
   "itemCount": zod.number(),
@@ -614,21 +614,18 @@ export const GetReasoningAssessmentParams = zod.object({
 
 export const GetReasoningAssessmentResponse = zod.object({
   "id": zod.number(),
-  "instrument": zod.enum(['ethical', 'critical']),
-  "phase": zod.enum(['baseline', 'unit1', 'unit2', 'unit3', 'unit4']),
+  "instrument": zod.enum(['subject', 'reasoning']),
+  "phase": zod.enum(['before', 'during1', 'during2', 'after']),
   "title": zod.string(),
   "subtitle": zod.string().nullish(),
   "instructions": zod.string(),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "position": zod.number(),
-  "type": zod.enum(['dilemma', 'mcq', 'short_answer']),
+  "type": zod.enum(['mcq', 'short_answer']),
   "prompt": zod.string(),
   "options": zod.array(zod.string()).nullish().describe('For mcq items — the answer choices.'),
-  "allowNote": zod.boolean().nullish().describe('For hybrid-format mcq items — when true, an optional short written note accompanies the choice.'),
-  "decisionOptions": zod.array(zod.string()).nullish().describe('For dilemma items — the possible decisions on the scenario.'),
-  "considerations": zod.array(zod.string()).nullish().describe('For dilemma items — statements to rate by importance and rank.'),
-  "rankCount": zod.number().nullish().describe('For dilemma items — how many top considerations to rank.')
+  "allowNote": zod.boolean().nullish().describe('For hybrid-format mcq items — when true, an optional short written note accompanies the choice.')
 }))
 })
 
@@ -665,7 +662,7 @@ export const StartReasoningAttemptResponse = zod.object({
 })).nullish().describe('For a submitted attempt being reviewed — the score metrics.'),
   "review": zod.array(zod.object({
   "itemId": zod.number(),
-  "type": zod.enum(['dilemma', 'mcq', 'short_answer']),
+  "type": zod.enum(['mcq', 'short_answer']),
   "prompt": zod.string(),
   "options": zod.array(zod.string()).nullish().describe('mcq — the answer choices shown.'),
   "selectedIndex": zod.number().nullish().describe('mcq — the option index the student chose.'),
@@ -675,23 +672,16 @@ export const StartReasoningAttemptResponse = zod.object({
   "text": zod.string().nullish().describe('short_answer — the student\'s written response.'),
   "referenceAnswer": zod.string().nullish().describe('short_answer — a model answer the response was graded against.'),
   "verdict": zod.union([zod.literal('correct'),zod.literal('partial'),zod.literal('incorrect'),zod.literal(null)]).nullish().describe('short_answer — the grader\'s verdict on the written response.'),
-  "rationale": zod.string().nullish().describe('short_answer — the grader\'s one-line rationale.'),
-  "decisionOptions": zod.array(zod.string()).nullish().describe('dilemma — the possible decisions.'),
-  "decisionIndex": zod.number().nullish().describe('dilemma — the decision the student chose.'),
-  "considerations": zod.array(zod.string()).nullish().describe('dilemma — the considerations presented.'),
-  "ranking": zod.array(zod.number()).nullish().describe('dilemma — consideration indices the student ranked most-important first.')
+  "rationale": zod.string().nullish().describe('short_answer — the grader\'s one-line rationale.')
 })).nullish().describe('For a submitted attempt being reviewed — per-question review with the student\'s answer and the correct answer.'),
   "items": zod.array(zod.object({
   "id": zod.number(),
   "position": zod.number(),
-  "type": zod.enum(['dilemma', 'mcq', 'short_answer']),
+  "type": zod.enum(['mcq', 'short_answer']),
   "prompt": zod.string(),
   "options": zod.array(zod.string()).nullish().describe('For mcq items — the answer choices.'),
-  "allowNote": zod.boolean().nullish().describe('For hybrid-format mcq items — when true, an optional short written note accompanies the choice.'),
-  "decisionOptions": zod.array(zod.string()).nullish().describe('For dilemma items — the possible decisions on the scenario.'),
-  "considerations": zod.array(zod.string()).nullish().describe('For dilemma items — statements to rate by importance and rank.'),
-  "rankCount": zod.number().nullish().describe('For dilemma items — how many top considerations to rank.')
-})).describe('The exact items to present for THIS attempt. The first take uses the seeded template; each retake returns freshly generated questions of the same kind (same instrument, skill areas, and structure).')
+  "allowNote": zod.boolean().nullish().describe('For hybrid-format mcq items — when true, an optional short written note accompanies the choice.')
+})).describe('The exact items to present for THIS attempt. Every attempt — first take and every retake — returns freshly generated questions of the same kind (same instrument and phase), so no question is ever repeated.')
 })
 
 
@@ -707,10 +697,7 @@ export const SubmitReasoningAttemptBody = zod.object({
   "itemId": zod.number(),
   "selectedIndex": zod.number().nullish().describe('mcq — chosen option index.'),
   "text": zod.string().nullish().describe('short_answer — the student\'s brief written response.'),
-  "note": zod.string().nullish().describe('hybrid mcq — an optional short written justification for the choice.'),
-  "decisionIndex": zod.number().nullish().describe('dilemma — chosen decision index.'),
-  "ratings": zod.array(zod.number()).nullish().describe('dilemma — importance rating (0-4) per consideration, by index.'),
-  "ranking": zod.array(zod.number()).nullish().describe('dilemma — consideration indices ranked most-important first.')
+  "note": zod.string().nullish().describe('hybrid mcq — an optional short written justification for the choice.')
 }))
 })
 
@@ -726,7 +713,7 @@ export const SubmitReasoningAttemptResponse = zod.object({
 })),
   "review": zod.array(zod.object({
   "itemId": zod.number(),
-  "type": zod.enum(['dilemma', 'mcq', 'short_answer']),
+  "type": zod.enum(['mcq', 'short_answer']),
   "prompt": zod.string(),
   "options": zod.array(zod.string()).nullish().describe('mcq — the answer choices shown.'),
   "selectedIndex": zod.number().nullish().describe('mcq — the option index the student chose.'),
@@ -736,17 +723,13 @@ export const SubmitReasoningAttemptResponse = zod.object({
   "text": zod.string().nullish().describe('short_answer — the student\'s written response.'),
   "referenceAnswer": zod.string().nullish().describe('short_answer — a model answer the response was graded against.'),
   "verdict": zod.union([zod.literal('correct'),zod.literal('partial'),zod.literal('incorrect'),zod.literal(null)]).nullish().describe('short_answer — the grader\'s verdict on the written response.'),
-  "rationale": zod.string().nullish().describe('short_answer — the grader\'s one-line rationale.'),
-  "decisionOptions": zod.array(zod.string()).nullish().describe('dilemma — the possible decisions.'),
-  "decisionIndex": zod.number().nullish().describe('dilemma — the decision the student chose.'),
-  "considerations": zod.array(zod.string()).nullish().describe('dilemma — the considerations presented.'),
-  "ranking": zod.array(zod.number()).nullish().describe('dilemma — consideration indices the student ranked most-important first.')
+  "rationale": zod.string().nullish().describe('short_answer — the grader\'s one-line rationale.')
 })).describe('Per-question review — each item with the student\'s answer and the correct answer.')
 })
 
 
 /**
- * @summary Course gradebook (coursework 80% + diagnostics 20%)
+ * @summary Course gradebook (coursework only; diagnostics are practice and never affect the grade)
  */
 export const GetGradebookResponse = zod.object({
   "overallPercent": zod.number(),
@@ -768,8 +751,8 @@ export const GetGradebookResponse = zod.object({
 })),
   "reasoning": zod.array(zod.object({
   "id": zod.number(),
-  "instrument": zod.enum(['ethical', 'critical']),
-  "phase": zod.enum(['baseline', 'unit1', 'unit2', 'unit3', 'unit4']),
+  "instrument": zod.enum(['subject', 'reasoning']),
+  "phase": zod.enum(['before', 'during1', 'during2', 'after']),
   "title": zod.string(),
   "status": zod.enum(['not_started', 'in_progress', 'passed'])
 }))

@@ -53,6 +53,6 @@ export interface ReasoningAttemptState {
      * @nullable
      */
   review?: ReasoningReviewItem[] | null;
-  /** The exact items to present for THIS attempt. The first take uses the seeded template; each retake returns freshly generated questions of the same kind (same instrument, skill areas, and structure). */
+  /** The exact items to present for THIS attempt. Every attempt — first take and every retake — returns freshly generated questions of the same kind (same instrument and phase), so no question is ever repeated. */
   items: ReasoningItem[];
 }

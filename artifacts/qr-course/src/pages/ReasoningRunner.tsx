@@ -20,8 +20,6 @@ import { CheckCircle2, AlertCircle, XCircle, ListChecks, PenLine, SplitSquareHor
 import { MathKeyboard, insertAtTextareaCursor } from "@/components/MathKeyboard";
 import type { StartReasoningBodyLength } from "@workspace/api-client-react";
 
-const RATING_LABELS = ["No importance", "Little", "Some", "Much", "Great"];
-
 type Format = StartReasoningBodyFormat;
 type Length = StartReasoningBodyLength;
 
@@ -88,12 +86,6 @@ const LENGTH_LABELS: Record<Length, string> = {
   long: "Long",
 };
 
-type DilemmaState = {
-  decisionIndex: number | null;
-  ratings: Record<number, number>; // considerationIndex -> 0..4
-  ranks: Record<number, number>; // considerationIndex -> 1..rankCount
-};
-
 export default function ReasoningRunner() {
   const params = useParams();
   const assessmentId = Number(params.id);
@@ -129,8 +121,6 @@ export default function ReasoningRunner() {
   const [notes, setNotes] = useState<Record<number, string>>({});
   // Written answers: itemId -> text
   const [written, setWritten] = useState<Record<number, string>>({});
-  // Dilemma state: itemId -> state (legacy attempts only)
-  const [dilemma, setDilemma] = useState<Record<number, DilemmaState>>({});
   const [error, setError] = useState<string | null>(null);
 
   function applyStart(data: {
@@ -202,38 +192,6 @@ export default function ReasoningRunner() {
     );
   }
 
-  function setDecision(itemId: number, idx: number) {
-    setDilemma((prev) => ({
-      ...prev,
-      [itemId]: {
-        decisionIndex: idx,
-        ratings: prev[itemId]?.ratings ?? {},
-        ranks: prev[itemId]?.ranks ?? {},
-      },
-    }));
-  }
-
-  function setRating(itemId: number, consIdx: number, rating: number) {
-    setDilemma((prev) => {
-      const cur = prev[itemId] ?? { decisionIndex: null, ratings: {}, ranks: {} };
-      return { ...prev, [itemId]: { ...cur, ratings: { ...cur.ratings, [consIdx]: rating } } };
-    });
-  }
-
-  function setRank(itemId: number, consIdx: number, rank: number) {
-    setDilemma((prev) => {
-      const cur = prev[itemId] ?? { decisionIndex: null, ratings: {}, ranks: {} };
-      const ranks = { ...cur.ranks };
-      // Ensure each rank is used once: clear any other consideration holding it.
-      for (const k of Object.keys(ranks)) {
-        if (ranks[Number(k)] === rank) delete ranks[Number(k)];
-      }
-      if (rank === 0) delete ranks[consIdx];
-      else ranks[consIdx] = rank;
-      return { ...prev, [itemId]: { ...cur, ranks } };
-    });
-  }
-
   function buildResponses(items: ReasoningItem[]): ReasoningResponseInput[] {
     return items.map((item) => {
       if (item.type === "mcq") {
@@ -244,25 +202,8 @@ export default function ReasoningRunner() {
           note: item.allowNote && note ? note : null,
         };
       }
-      if (item.type === "short_answer") {
-        const text = written[item.id]?.trim();
-        return { itemId: item.id, text: text || null };
-      }
-      const st = dilemma[item.id];
-      const consCount = item.considerations?.length ?? 0;
-      const ratings = Array.from({ length: consCount }, (_, i) => st?.ratings[i] ?? 0);
-      const rankCount = item.rankCount ?? 4;
-      const ranking: number[] = [];
-      for (let r = 1; r <= rankCount; r++) {
-        const found = st ? Object.keys(st.ranks).find((k) => st.ranks[Number(k)] === r) : undefined;
-        if (found !== undefined) ranking.push(Number(found));
-      }
-      return {
-        itemId: item.id,
-        decisionIndex: st?.decisionIndex ?? null,
-        ratings,
-        ranking,
-      };
+      const text = written[item.id]?.trim();
+      return { itemId: item.id, text: text || null };
     });
   }
 
@@ -270,14 +211,8 @@ export default function ReasoningRunner() {
     for (const item of items) {
       if (item.type === "mcq") {
         if (mcqAnswers[item.id] === undefined) return "Please answer every question before submitting.";
-      } else if (item.type === "short_answer") {
-        if (!written[item.id]?.trim()) return "Please write an answer for every question before submitting.";
-      } else {
-        const st = dilemma[item.id];
-        if (!st || st.decisionIndex === null) return "Please choose a decision for the scenario.";
-        const rankCount = item.rankCount ?? 4;
-        const ranked = st ? Object.values(st.ranks).filter((v) => v >= 1 && v <= rankCount).length : 0;
-        if (ranked < rankCount) return `Please rank your top ${rankCount} considerations.`;
+      } else if (!written[item.id]?.trim()) {
+        return "Please write an answer for every question before submitting.";
       }
     }
     return null;
@@ -291,7 +226,6 @@ export default function ReasoningRunner() {
     setMcqAnswers({});
     setNotes({});
     setWritten({});
-    setDilemma({});
     setFormat(null);
     setLength(null);
     setNeedsLength(false);
@@ -450,7 +384,7 @@ export default function ReasoningRunner() {
             <div>
               <h1 className="text-3xl font-serif font-bold text-primary mb-1">{assessment.title}</h1>
               <span className="inline-flex items-center gap-1.5 text-chart-2 font-medium">
-                <CheckCircle2 className="w-5 h-5" /> Passed
+                <CheckCircle2 className="w-5 h-5" /> Completed
               </span>
               {(format || length) && (
                 <div className="flex flex-wrap items-center gap-2 mt-2">
@@ -538,22 +472,13 @@ export default function ReasoningRunner() {
                 note={notes[item.id] ?? ""}
                 onNote={(t) => setNotes((p) => ({ ...p, [item.id]: t }))}
               />
-            ) : item.type === "short_answer" ? (
+            ) : (
               <WrittenQuestion
                 key={item.id}
                 index={idx}
                 item={item}
                 value={written[item.id] ?? ""}
                 onChange={(t) => setWritten((p) => ({ ...p, [item.id]: t }))}
-              />
-            ) : (
-              <DilemmaQuestion
-                key={item.id}
-                item={item}
-                state={dilemma[item.id]}
-                onDecision={(i) => setDecision(item.id, i)}
-                onRating={(c, r) => setRating(item.id, c, r)}
-                onRank={(c, r) => setRank(item.id, c, r)}
               />
             ),
           )}
@@ -713,102 +638,6 @@ function WrittenQuestion({
   );
 }
 
-function DilemmaQuestion({
-  item,
-  state,
-  onDecision,
-  onRating,
-  onRank,
-}: {
-  item: ReasoningItem;
-  state: DilemmaState | undefined;
-  onDecision: (i: number) => void;
-  onRating: (consIdx: number, rating: number) => void;
-  onRank: (consIdx: number, rank: number) => void;
-}) {
-  const rankCount = item.rankCount ?? 4;
-  const considerations = item.considerations ?? [];
-  return (
-    <div className="flex flex-col gap-6" data-testid={`dilemma-${item.id}`}>
-      <div className="prose prose-slate dark:prose-invert max-w-none">
-        <p className="whitespace-pre-line text-base leading-relaxed">{item.prompt}</p>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <h4 className="font-serif font-semibold">What should they do?</h4>
-        {(item.decisionOptions ?? []).map((opt, oi) => (
-          <button
-            key={oi}
-            type="button"
-            onClick={() => onDecision(oi)}
-            className={`text-left px-4 py-3 rounded-md border transition-colors ${
-              state?.decisionIndex === oi
-                ? "border-primary bg-primary/5 ring-1 ring-primary"
-                : "border-border hover:bg-secondary"
-            }`}
-            data-testid={`decision-${item.id}-${oi}`}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex flex-col gap-4">
-        <div>
-          <h4 className="font-serif font-semibold">Rate each consideration</h4>
-          <p className="text-sm text-muted-foreground">
-            How important was each one to your decision? Then rank your {rankCount} most
-            important using the selector on the right.
-          </p>
-        </div>
-        <div className="flex flex-col divide-y border rounded-md">
-          {considerations.map((c, ci) => (
-            <div key={ci} className="p-4 flex flex-col gap-3">
-              <p className="text-sm">{c}</p>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {RATING_LABELS.map((label, r) => {
-                    const active = (state?.ratings[ci] ?? -1) === r;
-                    return (
-                      <button
-                        key={r}
-                        type="button"
-                        onClick={() => onRating(ci, r)}
-                        title={label}
-                        className={`px-2.5 py-1 rounded text-xs border transition-colors ${
-                          active
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border hover:bg-secondary"
-                        }`}
-                        data-testid={`rating-${item.id}-${ci}-${r}`}
-                      >
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-                <select
-                  value={state?.ranks[ci] ?? 0}
-                  onChange={(e) => onRank(ci, Number(e.target.value))}
-                  className="text-sm border border-input rounded-md px-2 py-1 bg-background"
-                  data-testid={`rank-${item.id}-${ci}`}
-                >
-                  <option value={0}>Rank —</option>
-                  {Array.from({ length: rankCount }, (_, i) => i + 1).map((r) => (
-                    <option key={r} value={r}>
-                      Rank {r}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function ReviewCard({ item, index }: { item: ReasoningReviewItem; index: number }) {
   if (item.type === "mcq") {
     const options = item.options ?? [];
@@ -918,35 +747,5 @@ function ReviewCard({ item, index }: { item: ReasoningReviewItem; index: number 
     );
   }
 
-  const decisionOptions = item.decisionOptions ?? [];
-  const considerations = item.considerations ?? [];
-  const ranking = item.ranking ?? [];
-  const chosen =
-    item.decisionIndex !== null && item.decisionIndex !== undefined
-      ? decisionOptions[item.decisionIndex]
-      : null;
-  return (
-    <div className="rounded-lg border border-border bg-card p-5" data-testid={`review-item-${item.itemId}`}>
-      <p className="font-medium mb-3">
-        <span className="text-muted-foreground mr-2">{index + 1}.</span>
-        {item.prompt}
-      </p>
-      <div className="mb-3">
-        <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Your decision</div>
-        <p className="text-sm">{chosen ?? "No decision recorded"}</p>
-      </div>
-      {ranking.length > 0 && (
-        <div>
-          <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
-            Your ranked considerations
-          </div>
-          <ol className="list-decimal list-inside text-sm flex flex-col gap-1">
-            {ranking.map((ci, i) => (
-              <li key={i}>{considerations[ci] ?? `Consideration ${ci + 1}`}</li>
-            ))}
-          </ol>
-        </div>
-      )}
-    </div>
-  );
+  return null;
 }

@@ -4,24 +4,31 @@ import type { ReasoningAssessmentSummary } from "@workspace/api-client-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Compass, Brain, CheckCircle2 } from "lucide-react";
+import { Lightbulb, Brain, CheckCircle2 } from "lucide-react";
 
-type Phase = "baseline" | "unit1";
+type Phase = "before" | "during1" | "during2" | "after";
 
 const HEADINGS: Record<Phase, string> = {
-  baseline: "Start here: Baseline reasoning assessments",
-  unit1: "End of Unit 1: Reasoning checkpoint",
+  before: "Start here: try a practice diagnostic",
+  during1: "Checkpoint: a practice diagnostic at one-third",
+  during2: "Checkpoint: a practice diagnostic at two-thirds",
+  after: "Finish up: take a practice diagnostic",
 };
 
 const BLURBS: Record<Phase, string> = {
-  baseline:
-    "Take both short diagnostics before you begin so your progress can be measured against where you started.",
-  unit1: "Take both diagnostics one last time to capture your end-of-course growth.",
+  before:
+    "Try a subject or reasoning self-check before you begin so you can see how you grow. It's practice only — it never affects your grade.",
+  during1:
+    "Check how the early lectures are landing with a quick self-check. Practice only — it never affects your grade.",
+  during2:
+    "See how the material is sticking with a quick self-check. Practice only — it never affects your grade.",
+  after:
+    "Take a self-check one last time to see your end-of-course growth. Practice only — it never affects your grade.",
 };
 
 function Row({ a }: { a: ReasoningAssessmentSummary }) {
-  const isEthical = a.instrument === "ethical";
-  const Icon = isEthical ? Compass : Brain;
+  const isSubject = a.instrument === "subject";
+  const Icon = isSubject ? Brain : Lightbulb;
   const passed = a.status === "passed";
   return (
     <Link href={`/reasoning/${a.id}`}>
@@ -32,12 +39,12 @@ function Row({ a }: { a: ReasoningAssessmentSummary }) {
         <div className="flex items-center gap-3 min-w-0">
           <Icon className="w-4 h-4 text-primary shrink-0" />
           <span className="text-sm font-medium truncate">
-            {isEthical ? "Professional Judgment" : "Critical Reasoning"}
+            {isSubject ? "Subject knowledge" : "General reasoning"}
           </span>
         </div>
         {passed ? (
           <span className="inline-flex items-center gap-1 text-xs text-chart-2 font-medium shrink-0">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Passed
+            <CheckCircle2 className="w-3.5 h-3.5" /> Completed
           </span>
         ) : (
           <Button size="sm" variant="default" className="shrink-0">
@@ -54,7 +61,7 @@ export function ReasoningCallout({ phase }: { phase: Phase }) {
   const items = (data ?? []).filter((a) => a.phase === phase);
   if (items.length === 0) return null;
 
-  const rank = (a: ReasoningAssessmentSummary) => (a.instrument === "ethical" ? 0 : 1);
+  const rank = (a: ReasoningAssessmentSummary) => (a.instrument === "subject" ? 0 : 1);
   const sorted = items.slice().sort((x, y) => rank(x) - rank(y));
 
   return (
@@ -63,7 +70,7 @@ export function ReasoningCallout({ phase }: { phase: Phase }) {
         <div className="flex items-center justify-between gap-3">
           <h3 className="font-serif font-semibold">{HEADINGS[phase]}</h3>
           <span className="text-xs uppercase tracking-wider text-muted-foreground">
-            20% of grade
+            practice only
           </span>
         </div>
         <p className="text-sm text-muted-foreground">{BLURBS[phase]}</p>

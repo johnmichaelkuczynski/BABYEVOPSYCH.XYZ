@@ -10,9 +10,8 @@ export type GradebookReasoningItemPhase = typeof GradebookReasoningItemPhase[key
 
 
 export const GradebookReasoningItemPhase = {
-  baseline: 'baseline',
-  unit1: 'unit1',
-  unit2: 'unit2',
-  unit3: 'unit3',
-  unit4: 'unit4',
+  before: 'before',
+  during1: 'during1',
+  during2: 'during2',
+  after: 'after',
 } as const;

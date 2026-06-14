@@ -1,375 +1,232 @@
 // ---------------------------------------------------------------------------
-// Original content for the embedded diagnostic reasoning assessments.
+// Content for the embedded diagnostic assessments.
 //
-// Two instruments, each administered twice (a baseline before the course and a
-// checkpoint after the single unit) with MUTUALLY UNIQUE items:
-//   - Professional Judgment (DIT-style): a realistic everyday scenario; the
-//     student rates ~12 considerations by importance and ranks the most
-//     important few. A principled-judgment ("P") index is computed from how
-//     postconventional considerations are ranked. Stages: P = personal
-//     interest, M = maintaining norms/rules/approval, PC = postconventional/
-//     principled, X = meaningless (a reliability check — ranking it high
-//     signals careless responding).
-//   - Critical Reasoning (CCTST-style): multiple-choice items spanning analysis,
-//     inference, evaluation, deduction, and induction.
+// Two kinds of diagnostic, each offered at four phases of the course:
+//   - Subject-Specific: evolutionary-psychology questions generated fresh from
+//     the course's own lecture content (scoped to what's been covered so far).
+//   - General Reasoning: genuine reasoning questions a student can solve by
+//     thinking carefully — drawing valid conclusions, working multi-step
+//     problems, recognizing structure. NOT "critical-thinking"/fallacy/source-
+//     credibility/skepticism questions, and NOT recall.
 //
-// All items are ORIGINAL. No real DIT or CCTST items are reproduced. For every
-// MCQ the correct option is written FIRST; at seed time options are rotated so
-// the correct answer lands at a varied index (see seedDiagnostics.ts).
+// Phases: before (pre-course baseline), during1 (~one-third through),
+// during2 (~two-thirds through), after (end of course).
+//
+// Diagnostics are PRACTICE: any test, any time, any order, unlimited retakes,
+// freshly generated every attempt (so a question never repeats) and they NEVER
+// affect the course grade.
+//
+// The seed below defines only the 8 assessment "shells" — no template items.
+// Every attempt's items are generated at runtime. The fallback banks here are
+// used only when AI generation is unavailable, so an attempt is never blocked.
+// For every fallback MCQ the correct option is listed FIRST; it is rotated to a
+// random index at attempt-build time.
 // ---------------------------------------------------------------------------
 
-export type Stage = "P" | "M" | "PC" | "X";
+export type Instrument = "subject" | "reasoning";
 
-export type DilemmaItem = {
-  prompt: string;
-  decisionOptions: string[];
-  considerations: { text: string; stage: Stage }[];
-  rankCount: number;
-};
-
-export type SkillArea =
-  | "analysis"
-  | "inference"
-  | "evaluation"
-  | "deduction"
-  | "induction";
-
-export type McqItem = {
-  prompt: string;
-  // Correct option is listed FIRST. Rotated at seed time.
-  options: string[];
-  skillArea: SkillArea;
-};
-
-export type Phase = "baseline" | "unit1";
+export type Phase = "before" | "during1" | "during2" | "after";
 
 export type DiagnosticSeed = {
-  instrument: "ethical" | "critical";
+  instrument: Instrument;
   phase: Phase;
   title: string;
   subtitle: string;
   instructions: string;
-  dilemmas?: DilemmaItem[];
-  mcqs?: McqItem[];
 };
 
-const ETHICAL_INSTRUCTIONS =
-  "Read the scenario and decide what the person should do. Then rate each consideration by how important it was to your decision, and finally rank your most important considerations. There are no right or wrong answers here — answer honestly. Submitting completes the assessment and you'll receive written feedback on your reasoning.";
+// Bump this whenever the seed's structure/content changes so the seeder
+// self-heals existing (dev) databases by replacing the old assessments.
+export const DIAGNOSTIC_CONTENT_VERSION = "evopsych-subject-reasoning-2026-06-v1";
 
-const CRITICAL_INSTRUCTIONS =
-  "Answer each question by selecting the single best option. Work carefully — these questions measure reasoning, not recall. Submitting completes the assessment and you'll receive written feedback on your performance.";
-
-// ===========================================================================
-// PROFESSIONAL JUDGMENT — two unique everyday scenarios
-// ===========================================================================
-
-const DILEMMA_BASELINE: DilemmaItem = {
-  prompt:
-    "Mia helped run a small experiment for her group's science-fair project, testing whether people spot a snake in a photo faster than a flower. The real difference her group found was tiny. The day before judging, a teammate asks Mia to describe the result on their poster as a 'huge, dramatic difference,' even though it was barely there, because it 'sounds more impressive.' The actual numbers wouldn't change — only how they're described.\n\nShould Mia refuse and present the result honestly?",
-  decisionOptions: [
-    "Mia should refuse and present the result honestly",
-    "Can't decide",
-    "Mia should exaggerate the result to sound impressive, as asked",
+// Which course topics (by slug) a subject-specific assessment should draw from
+// at each phase. before/after span the whole unit (so they're comparable);
+// during1/during2 cover what a student has seen by one-third / two-thirds.
+export const PHASE_TOPIC_SLUGS: Record<Phase, string[]> = {
+  before: [
+    "mind-has-history",
+    "built-to-survive",
+    "logic-of-attraction",
+    "love-and-jealousy",
+    "why-we-cooperate",
+    "why-we-fight",
   ],
-  considerations: [
-    { text: "Whether refusing would make Mia look difficult and upset her teammates.", stage: "P" },
-    { text: "Whether the judges and audience deserve an accurate description so they can judge fairly.", stage: "PC" },
-    { text: "Whether Mia's job is simply to do whatever the group decides.", stage: "M" },
-    { text: "Whether calling a tiny difference 'huge,' even with the same numbers, misleads the people listening.", stage: "PC" },
-    { text: "Whether Mia would feel more comfortable just going along with the request.", stage: "P" },
-    { text: "Whether the science-fair rules call for honest reporting of results.", stage: "M" },
-    { text: "Whether Mia might be thanked by the group for being a cooperative 'team player'.", stage: "P" },
-    { text: "Whether exaggerating the result chips away at the honesty the whole project depends on.", stage: "PC" },
-    { text: "Whether the group should have used nicer poster colors.", stage: "X" },
-    { text: "Whether 'everyone hypes up their results anyway.'", stage: "M" },
-    { text: "Whether the people reading the poster deserve a faithful account of what really happened.", stage: "PC" },
-    { text: "Whether refusing might cost Mia a good grade from her teammates' point of view.", stage: "P" },
+  during1: ["mind-has-history", "built-to-survive"],
+  during2: [
+    "mind-has-history",
+    "built-to-survive",
+    "logic-of-attraction",
+    "love-and-jealousy",
   ],
-  rankCount: 4,
+  after: [
+    "mind-has-history",
+    "built-to-survive",
+    "logic-of-attraction",
+    "love-and-jealousy",
+    "why-we-cooperate",
+    "why-we-fight",
+  ],
 };
 
-const DILEMMA_UNIT1: DilemmaItem = {
-  prompt:
-    "Theo runs the sign-up sheet for the school chess club. People wrote down their phone numbers only so they could get reminders about chess meetings. Now a friend running an unrelated bake-sale fundraiser asks Theo to share those numbers to send out fundraiser texts. The friend says 'it's for a good cause, and you have the numbers anyway.'\n\nShould Theo refuse to hand over the private phone numbers?",
-  decisionOptions: [
-    "Theo should refuse to share the private numbers",
-    "Can't decide",
-    "Theo should share the numbers, as his friend asks",
-  ],
-  considerations: [
-    { text: "Whether the people who signed up have a right to the privacy they were promised.", stage: "PC" },
-    { text: "Whether Theo could get blamed if people found out their numbers were shared.", stage: "P" },
-    { text: "Whether keeping a promise to people matters even when breaking it would help a good cause.", stage: "PC" },
-    { text: "Whether the friend's say-so is enough to make sharing okay.", stage: "M" },
-    { text: "Whether Theo would gain his friend's gratitude by handing the numbers over.", stage: "P" },
-    { text: "Whether the school's rules about personal information cover how the list may be used.", stage: "M" },
-    { text: "Whether Theo personally likes the friend asking.", stage: "P" },
-    { text: "Whether the people on the list would agree if Theo actually asked them first.", stage: "PC" },
-    { text: "Whether the fundraiser texts should use a fun emoji.", stage: "X" },
-    { text: "Whether 'you have the numbers anyway' is a good enough reason.", stage: "M" },
-    { text: "Whether trust between the club and its members depends on honoring such promises.", stage: "PC" },
-    { text: "Whether refusing could cause an argument with his friend.", stage: "P" },
-  ],
-  rankCount: 4,
+const SUBJECT_INSTRUCTIONS =
+  "These questions are drawn from the course's evolutionary-psychology lectures. Choose a format (multiple choice, multiple choice plus a note, or short written answers) and a length, then answer at your own pace. Every attempt is freshly generated, so you'll never see the same question twice — retake it as often as you like. This is practice; it never affects your course grade.";
+
+const REASONING_INSTRUCTIONS =
+  "These are general-reasoning questions you can solve just by thinking carefully — no course knowledge or memorization needed. Choose a format and a length and work through them at your own pace. Every attempt is freshly generated, so questions never repeat — retake as often as you like. This is practice; it never affects your course grade.";
+
+const PHASE_SUBTITLE: Record<Phase, string> = {
+  before: "Before you begin the course",
+  during1: "Checkpoint — about one-third through",
+  during2: "Checkpoint — about two-thirds through",
+  after: "After finishing the course",
 };
 
-// ===========================================================================
-// CRITICAL REASONING — two unique 10-item forms (correct option listed first)
-// ===========================================================================
+const PHASE_TITLE_SUFFIX: Record<Phase, string> = {
+  before: "Starting Point",
+  during1: "Checkpoint 1",
+  during2: "Checkpoint 2",
+  after: "Final Check",
+};
 
-const CRITICAL_BASELINE: McqItem[] = [
+function buildSeed(): DiagnosticSeed[] {
+  const phases: Phase[] = ["before", "during1", "during2", "after"];
+  const seed: DiagnosticSeed[] = [];
+  for (const phase of phases) {
+    seed.push({
+      instrument: "subject",
+      phase,
+      title: `Evolutionary Psychology — ${PHASE_TITLE_SUFFIX[phase]}`,
+      subtitle: PHASE_SUBTITLE[phase],
+      instructions: SUBJECT_INSTRUCTIONS,
+    });
+    seed.push({
+      instrument: "reasoning",
+      phase,
+      title: `General Reasoning — ${PHASE_TITLE_SUFFIX[phase]}`,
+      subtitle: PHASE_SUBTITLE[phase],
+      instructions: REASONING_INSTRUCTIONS,
+    });
+  }
+  return seed;
+}
+
+export const DIAGNOSTIC_SEED: DiagnosticSeed[] = buildSeed();
+
+// ---------------------------------------------------------------------------
+// Fallback question banks (used only when AI generation is unavailable).
+// Correct option listed FIRST; rotated at attempt-build time.
+// ---------------------------------------------------------------------------
+
+export type FallbackMcq = {
+  prompt: string;
+  options: string[];
+};
+
+export const SUBJECT_FALLBACK: FallbackMcq[] = [
   {
     prompt:
-      "Consider: 'All students who studied passed the exam. Maria studied. So Maria passed.' Which unstated assumption does the argument rely on?",
+      "The lectures describe the brain as best understood as which of the following?",
     options: [
-      "Maria is among the students the first statement describes.",
-      "Studying is the only way to pass the exam.",
-      "Maria always studies for her exams.",
-      "The exam was unusually difficult.",
+      "An evolved body part with a job, shaped over many generations to help our ancestors survive",
+      "A blank notebook that the surrounding world writes on entirely from scratch",
+      "A computer that is identical in every person from the moment of birth",
+      "A part of the body that has nothing to do with survival",
     ],
-    skillArea: "analysis",
+  },
+  {
+    prompt: "Why do sweet, fatty foods taste good to almost everyone?",
+    options: [
+      "Craving high-energy food helped our ancestors survive times when food was scarce",
+      "Sugar has no effect on survival, so the preference is purely random",
+      "People only like sugar because modern advertising teaches them to",
+      "Fatty food was always abundant, so the craving carries no meaning",
+    ],
   },
   {
     prompt:
-      "'Since the new policy cut accidents by 40%, and fewer accidents mean lower insurance costs, the city should keep the policy. After all, saving money benefits everyone.' What is the main conclusion?",
+      "Babies stopping at the edge of a 'visual cliff' even though no one taught them to fear heights is evidence that:",
     options: [
-      "The city should keep the policy.",
-      "The new policy cut accidents by 40%.",
-      "Fewer accidents mean lower insurance costs.",
-      "Saving money benefits everyone.",
+      "Some useful caution comes built in rather than being learned from experience",
+      "Babies learn to fear heights only after falling many times",
+      "Heights are not actually dangerous to infants",
+      "Parents always teach their infants to avoid edges",
     ],
-    skillArea: "analysis",
   },
   {
     prompt:
-      "A survey finds 70% of people who exercise daily report good sleep, versus 30% of those who never exercise. Which conclusion is best supported?",
+      "Why do people across many different cultures tend to find even, balanced faces attractive?",
     options: [
-      "People who exercise daily are more likely to report good sleep than those who never exercise.",
-      "Exercise guarantees good sleep for everyone.",
-      "Poor sleep is what causes people to stop exercising.",
-      "Anyone who wants good sleep must exercise daily.",
+      "A balanced face can be a small clue that a body grew up healthy",
+      "Balanced faces are considered beautiful only because television says so",
+      "There is no real pattern; attraction is completely random",
+      "Only one culture in the world prefers balanced faces",
     ],
-    skillArea: "inference",
+  },
+  {
+    prompt: "According to the lectures, love and jealousy work together as:",
+    options: [
+      "A matched pair — love bonds partners together while jealousy guards that bond",
+      "Two completely unrelated feelings that share no purpose",
+      "Feelings invented entirely by modern culture",
+      "Proof that human emotions have no evolutionary history",
+    ],
   },
   {
     prompt:
-      "A report notes that ice-cream sales and drowning deaths rise in the same months. A careful reader should infer that:",
+      "The lectures say we are especially willing to help close relatives. The evolutionary reason is that:",
     options: [
-      "Both may be linked to a third factor, such as hot weather.",
-      "Eating ice cream causes drowning.",
-      "Drowning incidents cause ice-cream sales.",
-      "The data must simply be mistaken.",
+      "Close relatives share many of our genes, so helping them helps those genes continue",
+      "Relatives are the only people who can ever help us back",
+      "Helping relatives has no connection to survival or genes",
+      "We are taught by schools to prefer relatives over everyone else",
     ],
-    skillArea: "inference",
-  },
-  {
-    prompt: "Which source would most strengthen the claim 'this medication is safe'?",
-    options: [
-      "A large, peer-reviewed clinical trial.",
-      "A testimonial from one satisfied customer.",
-      "An advertisement produced by the manufacturer.",
-      "A popular wellness blog post.",
-    ],
-    skillArea: "evaluation",
-  },
-  {
-    prompt:
-      "'My grandfather smoked daily and lived to 95, so smoking isn't really harmful.' The main weakness of this argument is that it:",
-    options: [
-      "Relies on a single example against strong statistical evidence.",
-      "Quotes an unreliable expert.",
-      "Contains an internal contradiction.",
-      "Appeals purely to emotion.",
-    ],
-    skillArea: "evaluation",
-  },
-  {
-    prompt:
-      "'All mammals are warm-blooded. All whales are mammals. Therefore all whales are warm-blooded.' This argument is:",
-    options: [
-      "Valid.",
-      "Invalid, because whales live in water.",
-      "Invalid, because it assumes what it proves.",
-      "Invalid, because the premises are uncertain.",
-    ],
-    skillArea: "deduction",
-  },
-  {
-    prompt:
-      "'If it rained, the streets are wet. The streets are not wet.' What necessarily follows?",
-    options: [
-      "It did not rain.",
-      "It rained.",
-      "The streets are dry for some other reason.",
-      "Nothing at all follows.",
-    ],
-    skillArea: "deduction",
-  },
-  {
-    prompt:
-      "A pollster surveys five of her friends and predicts how the whole country will vote. The strongest objection is that:",
-    options: [
-      "The sample is far too small and unrepresentative.",
-      "Friends never tell the truth.",
-      "Polls are always wrong.",
-      "Voting is supposed to be private.",
-    ],
-    skillArea: "induction",
-  },
-  {
-    prompt:
-      "Plants given a new fertilizer grew taller than otherwise identical plants without it, all else held equal. The best-supported conclusion is:",
-    options: [
-      "The fertilizer probably caused the extra growth.",
-      "Taller plants attract more fertilizer.",
-      "Fertilizer is required for any plant growth at all.",
-      "The result was pure coincidence.",
-    ],
-    skillArea: "induction",
   },
 ];
 
-const CRITICAL_UNIT1: McqItem[] = [
+export const REASONING_FALLBACK: FallbackMcq[] = [
   {
-    prompt: "'We should ban the chemical because it's unnatural.' This argument assumes that:",
+    prompt:
+      "Every marble in a jar is either red or blue. Every red marble is heavy. Mara pulls out a marble that turns out to be light. What can you conclude about it?",
     options: [
-      "Natural things are always safe and unnatural things are harmful.",
-      "The chemical is expensive to produce.",
-      "Bans are easy to enforce.",
-      "Most people dislike the chemical.",
+      "It is blue",
+      "It is red",
+      "It is heavy",
+      "Nothing can be concluded",
     ],
-    skillArea: "analysis",
   },
   {
     prompt:
-      "'The bridge must be inspected, because cracks have appeared and ignoring cracks has caused collapses before.' Which is a premise supporting the conclusion?",
-    options: [
-      "Cracks have appeared on the bridge.",
-      "The bridge must be inspected.",
-      "The bridge is quite old.",
-      "Inspections are expensive.",
-    ],
-    skillArea: "analysis",
+      "A train travels at a steady speed and covers 60 km in one hour. At the same speed, how far will it travel in two and a half hours?",
+    options: ["150 km", "120 km", "90 km", "180 km"],
   },
   {
     prompt:
-      "A study finds students who eat breakfast score higher on morning tests than those who skip it. Which is best supported?",
-    options: [
-      "Eating breakfast is associated with higher morning test scores.",
-      "Breakfast makes everyone a genius.",
-      "Skipping breakfast should be banned.",
-      "Tests should always be held in the afternoon.",
-    ],
-    skillArea: "inference",
-  },
-  {
-    prompt: "'All items on the shelf are on sale. The blue mug is on the shelf.' Therefore:",
-    options: [
-      "The blue mug is on sale.",
-      "The blue mug is expensive.",
-      "Only mugs are on sale.",
-      "The shelf is completely full.",
-    ],
-    skillArea: "inference",
-  },
-  {
-    prompt: "To evaluate the claim 'crime is rising,' which is the most relevant evidence?",
-    options: [
-      "Official crime statistics gathered over several years.",
-      "A friend's sense that things seem worse lately.",
-      "A dramatic recent news headline.",
-      "A popular movie about crime.",
-    ],
-    skillArea: "evaluation",
+      "In a line, Sam is ahead of Tara, and Tara is ahead of Uma. Who is at the very back of the line?",
+    options: ["Uma", "Sam", "Tara", "It cannot be determined"],
   },
   {
     prompt:
-      "'You can't trust her argument for the policy — she's not even an economist.' This response is weak because it:",
+      "Suppose it is always true that 'whenever the alarm rings, the door is locked.' Right now the door is NOT locked. What follows?",
     options: [
-      "Attacks the person rather than the argument.",
-      "Relies on too much data.",
-      "Is far too detailed.",
-      "Simply restates the policy.",
+      "The alarm is not ringing",
+      "The alarm is ringing",
+      "The door is locked after all",
+      "Nothing follows",
     ],
-    skillArea: "evaluation",
   },
   {
     prompt:
-      "'If a number is divisible by 4, it is even. Twelve is divisible by 4.' What necessarily follows?",
-    options: [
-      "Twelve is even.",
-      "Twelve is odd.",
-      "All even numbers are divisible by 4.",
-      "Nothing follows.",
-    ],
-    skillArea: "deduction",
+      "Five friends share 20 apples equally. Then each friend eats 2 of their own apples. How many apples does each friend have left?",
+    options: ["2", "4", "6", "3"],
   },
   {
     prompt:
-      "'If she practiced, she improved. She improved. Therefore she practiced.' This reasoning is:",
+      "A box is heavier than a bag, and the bag is heavier than a cup. Which statement must be true?",
     options: [
-      "Invalid, because she might have improved for another reason.",
-      "Valid and certain.",
-      "Invalid, because practice never helps.",
-      "Valid only on weekends.",
+      "The box is heavier than the cup",
+      "The cup is heavier than the box",
+      "The bag is the heaviest of the three",
+      "The box and the cup weigh the same",
     ],
-    skillArea: "deduction",
-  },
-  {
-    prompt:
-      "After three rainy Mondays in a row, someone concludes 'it always rains on Mondays.' This generalization is:",
-    options: [
-      "Hasty — based on far too few cases.",
-      "A valid logical deduction.",
-      "Certainly true.",
-      "Impossible to evaluate at all.",
-    ],
-    skillArea: "induction",
-  },
-  {
-    prompt:
-      "A new drug cured 95% of patients in a large, well-designed trial. The best-supported prediction is:",
-    options: [
-      "The drug will likely help most future patients with the condition.",
-      "The drug will cure every disease.",
-      "The drug works only inside trials.",
-      "The drug is probably unsafe.",
-    ],
-    skillArea: "induction",
-  },
-];
-
-export const DIAGNOSTIC_SEED: DiagnosticSeed[] = [
-  {
-    instrument: "ethical",
-    phase: "baseline",
-    title: "Professional Judgment Inventory — Baseline",
-    subtitle: "Before the course",
-    instructions: ETHICAL_INSTRUCTIONS,
-    dilemmas: [DILEMMA_BASELINE],
-  },
-  {
-    instrument: "critical",
-    phase: "baseline",
-    title: "Critical Reasoning Assessment — Baseline",
-    subtitle: "Before the course",
-    instructions: CRITICAL_INSTRUCTIONS,
-    mcqs: CRITICAL_BASELINE,
-  },
-  {
-    instrument: "ethical",
-    phase: "unit1",
-    title: "Professional Judgment Inventory — Course Checkpoint",
-    subtitle: "After the unit: Evolutionary Psychology for Everyone",
-    instructions: ETHICAL_INSTRUCTIONS,
-    dilemmas: [DILEMMA_UNIT1],
-  },
-  {
-    instrument: "critical",
-    phase: "unit1",
-    title: "Critical Reasoning Assessment — Course Checkpoint",
-    subtitle: "After the unit: Evolutionary Psychology for Everyone",
-    instructions: CRITICAL_INSTRUCTIONS,
-    mcqs: CRITICAL_UNIT1,
   },
 ];

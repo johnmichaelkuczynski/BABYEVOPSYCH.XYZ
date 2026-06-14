@@ -151,15 +151,17 @@ export const practiceAttemptsTable = pgTable("practice_attempts", {
 
 // ---------------------------------------------------------------------------
 // Diagnostic reasoning assessments (embedded program-level instruments).
-// Two original instruments — Ethical Reasoning (DIT-style) and Critical
-// Reasoning (CCTST-style) — each administered 5 times (baseline + after each
-// of the 4 units) with mutually unique items. Pass/Fail: submitting = pass.
+// Two kinds — Subject-Specific (evolutionary psychology, generated from the
+// course lecture content) and General Reasoning (genuine reasoning) — each
+// offered at four phases (before the course, one-third through, two-thirds
+// through, and after). Every attempt is freshly generated so no question is
+// ever repeated, and diagnostics NEVER affect the course grade.
 // ---------------------------------------------------------------------------
 
 export const diagnosticAssessmentsTable = pgTable("diagnostic_assessments", {
   id: serial("id").primaryKey(),
-  instrument: text("instrument").notNull(), // ethical | critical
-  phase: text("phase").notNull(), // baseline | unit1 | unit2 | unit3 | unit4
+  instrument: text("instrument").notNull(), // subject | reasoning
+  phase: text("phase").notNull(), // before | during1 | during2 | after
   title: text("title").notNull(),
   subtitle: text("subtitle"),
   instructions: text("instructions").notNull(),
@@ -171,23 +173,21 @@ export const diagnosticItemsTable = pgTable("diagnostic_items", {
   assessmentId: integer("assessment_id")
     .notNull()
     .references(() => diagnosticAssessmentsTable.id, { onDelete: "cascade" }),
-  // Null for the seeded "template" items (the canonical question bank used for
-  // the first take and as the generation template). For a retake, fresh items
-  // are generated per attempt and tagged with that attempt's id so every
-  // retake gets different questions of the same kind. These cascade-delete
-  // with their attempt.
+  // Every item is freshly generated per attempt and tagged with that attempt's
+  // id, so no question is ever shown twice. These cascade-delete with their
+  // attempt. (No seeded "template" items exist any more.)
   attemptId: integer("attempt_id").references(
     () => diagnosticAttemptsTable.id,
     { onDelete: "cascade" },
   ),
   position: integer("position").notNull(),
-  type: text("type").notNull(), // dilemma | mcq
+  type: text("type").notNull(), // mcq | short_answer
   prompt: text("prompt").notNull(),
   // Public payload sent to the client: for mcq -> { options: string[] };
-  // for dilemma -> { decisionOptions: string[], considerations: string[] }.
+  // for short_answer -> {}.
   payload: jsonb("payload").notNull(),
-  // Hidden scoring key, never sent to the client: for mcq ->
-  // { correctIndex, skillArea }; for dilemma -> { stages: string[], rankCount }.
+  // Hidden scoring key, never sent to the client: for mcq -> { correctIndex };
+  // for short_answer -> { referenceAnswer, keyPoints? }.
   scoring: jsonb("scoring").notNull(),
 });
 
@@ -224,8 +224,5 @@ export const diagnosticResponsesTable = pgTable("diagnostic_responses", {
   selectedIndex: integer("selected_index"), // mcq — chosen option index
   answerText: text("answer_text"), // short_answer — the student's written response
   note: text("note"), // hybrid mcq — optional written justification
-  decisionIndex: integer("decision_index"), // dilemma — chosen decision index
-  ratings: jsonb("ratings"), // dilemma — importance rating per consideration
-  ranking: jsonb("ranking"), // dilemma — consideration indices, most-important first
-  isCorrect: boolean("is_correct"), // mcq/short_answer — null for dilemma items
+  isCorrect: boolean("is_correct"), // mcq/short_answer — judged correctness
 });

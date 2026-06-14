@@ -10,6 +10,6 @@ export type ReasoningAssessmentInstrument = typeof ReasoningAssessmentInstrument
 
 
 export const ReasoningAssessmentInstrument = {
-  ethical: 'ethical',
-  critical: 'critical',
+  subject: 'subject',
+  reasoning: 'reasoning',
 } as const;

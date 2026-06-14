@@ -21,7 +21,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Welcome to your Evolutionary Psychology course workspace.</p>
         </div>
 
-        <ReasoningCallout phase="baseline" />
+        <ReasoningCallout phase="before" />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card>

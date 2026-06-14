@@ -1,9 +1,11 @@
 import { Router, type IRouter } from "express";
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import {
   db,
   assignmentsTable,
   attemptsTable,
+  topicsTable,
+  lecturesTable,
   diagnosticAssessmentsTable,
   diagnosticItemsTable,
   diagnosticAttemptsTable,
@@ -20,7 +22,7 @@ import {
 } from "@workspace/api-zod";
 import {
   scoreAssessment,
-  judgeCritical,
+  judgeMcq,
   gradeWritten,
   generateFeedback,
   buildAttemptItems,
@@ -35,20 +37,45 @@ import {
   type Format,
   type Length,
   type ItemType,
+  type Instrument,
 } from "../lib/reasoning";
+import { PHASE_TOPIC_SLUGS, type Phase } from "../lib/diagnosticContent";
 
 const router: IRouter = Router();
-
-const COURSEWORK_WEIGHT = 80;
-const DIAGNOSTIC_WEIGHT = 20;
 
 function parseIdParam(raw: unknown): number {
   const s = Array.isArray(raw) ? raw[0] : (raw as string);
   return parseInt(s ?? "", 10);
 }
 
-type Instrument = "ethical" | "critical";
-type Phase = "baseline" | "unit1" | "unit2" | "unit3" | "unit4";
+// Concatenate the lecture text a subject-specific assessment should draw from
+// at the given phase, so question generation is grounded in course content.
+async function loadSubjectContext(phase: Phase): Promise<string> {
+  const slugs = PHASE_TOPIC_SLUGS[phase] ?? [];
+  if (slugs.length === 0) return "";
+  const rows = await db
+    .select({
+      slug: topicsTable.slug,
+      lectureTitle: lecturesTable.title,
+      body: lecturesTable.body,
+    })
+    .from(topicsTable)
+    .innerJoin(lecturesTable, eq(lecturesTable.topicId, topicsTable.id))
+    .where(inArray(topicsTable.slug, slugs));
+  const order = new Map(slugs.map((s, i) => [s, i]));
+  rows.sort((x, y) => (order.get(x.slug) ?? 0) - (order.get(y.slug) ?? 0));
+  return rows.map((r) => `## ${r.lectureTitle}\n${r.body}`).join("\n\n");
+}
+
+// All prompts already used by any attempt of this assessment, so freshly
+// generated items can avoid repeating a question.
+async function priorPrompts(assessmentId: number): Promise<string[]> {
+  const rows = await db
+    .select({ prompt: diagnosticItemsTable.prompt })
+    .from(diagnosticItemsTable)
+    .where(eq(diagnosticItemsTable.assessmentId, assessmentId));
+  return rows.map((r) => r.prompt);
+}
 
 type ItemRowRaw = typeof diagnosticItemsTable.$inferSelect;
 
@@ -321,12 +348,22 @@ router.post("/reasoning/assessments/:assessmentId/start", async (req, res): Prom
   }
 
   // Every occurrence of the assessment presents freshly generated questions of
-  // the same kind (different scenarios/items) — including the very first take
-  // and any take after a course reset. The seeded template is only the
-  // structural blueprint, and the fallback if generation fails. The items are
-  // shaped to the chosen response format (multiple-choice, hybrid, or written).
-  const template = await loadTemplateItems(id);
-  const variant = await buildAttemptItems(a.instrument as Instrument, format, length, template);
+  // the same kind, so no question is ever repeated. Subject-specific items are
+  // grounded in the lecture content for this phase; all prior prompts for this
+  // assessment are passed as exclusions. The items are shaped to the chosen
+  // response format (multiple-choice, hybrid, or written). A static bank is the
+  // fallback if generation fails.
+  const instrument = a.instrument as Instrument;
+  const subjectContext =
+    instrument === "subject" ? await loadSubjectContext(a.phase as Phase) : undefined;
+  const excludePrompts = await priorPrompts(id);
+  const variant = await buildAttemptItems({
+    instrument,
+    format,
+    length,
+    subjectContext,
+    excludePrompts,
+  });
   await insertAttemptItems(id, created.id, variant);
   const items = await loadItemsForAttempt(id, created.id);
 
@@ -387,11 +424,12 @@ router.post("/reasoning/assessments/:assessmentId/submit", async (req, res): Pro
     ? await loadItemsForAttempt(id, target.id)
     : await loadTemplateItems(id);
   const instrument = a.instrument as Instrument;
-  // For MCQ (critical) assessments, judge the genuinely correct option with the
-  // model rather than trusting the stored answer key. Both scoring and the
-  // per-question review use these judged answers.
+  // For general-reasoning MCQs, judge the genuinely correct option with the
+  // model rather than trusting the stored answer key (its answer follows from
+  // the question itself). Subject-specific MCQs depend on the course's own
+  // lecture content, so they trust the generated key instead.
   const judged =
-    instrument === "critical" ? await judgeCritical(items) : new Map<number, number>();
+    instrument === "reasoning" ? await judgeMcq(items) : new Map<number, number>();
   // Grade any open written (short_answer) responses leniently against their
   // model answers; used by both scoring and the per-question review.
   const written = items.some((it) => it.type === "short_answer")
@@ -439,7 +477,7 @@ router.post("/reasoning/assessments/:assessmentId/submit", async (req, res): Pro
 
   // Persist one normalized row per answered item (replacing any prior rows for
   // this attempt). isCorrect is set for mcq (judged option) and short_answer
-  // (grader verdict) items, and left null for dilemmas.
+  // (grader verdict) items.
   await db
     .delete(diagnosticResponsesTable)
     .where(eq(diagnosticResponsesTable.attemptId, attemptId));
@@ -465,9 +503,6 @@ router.post("/reasoning/assessments/:assessmentId/submit", async (req, res): Pro
       selectedIndex: resp?.selectedIndex ?? null,
       answerText: resp?.text ?? null,
       note: resp?.note ?? null,
-      decisionIndex: resp?.decisionIndex ?? null,
-      ratings: resp?.ratings ?? null,
-      ranking: resp?.ranking ?? null,
       isCorrect,
     };
   });
@@ -488,7 +523,7 @@ router.post("/reasoning/assessments/:assessmentId/submit", async (req, res): Pro
 });
 
 router.get("/reasoning/grades", async (_req, res) => {
-  // ---- Coursework (80%) ----
+  // ---- Coursework (100% — the entire grade) ----
   const assignments = await db
     .select()
     .from(assignmentsTable)
@@ -522,7 +557,7 @@ router.get("/reasoning/grades", async (_req, res) => {
       ? 0
       : coursework.reduce((s, c) => s + (c.bestScore ?? 0), 0) / coursework.length;
 
-  // ---- Diagnostics (20%) ----
+  // ---- Diagnostics (practice only — never affect the grade) ----
   const assessments = await db
     .select()
     .from(diagnosticAssessmentsTable)
@@ -549,13 +584,9 @@ router.get("/reasoning/grades", async (_req, res) => {
       };
     }),
   );
-  const passedCount = reasoning.filter((r) => r.status === "passed").length;
-  const reasoningPct =
-    reasoning.length === 0 ? 0 : (passedCount / reasoning.length) * 100;
 
-  const courseworkEarned = (courseworkAvg / 100) * COURSEWORK_WEIGHT;
-  const diagnosticsEarned = (reasoningPct / 100) * DIAGNOSTIC_WEIGHT;
-  const overall = courseworkEarned + diagnosticsEarned;
+  // Coursework is the entire grade; diagnostics are practice and do not count.
+  const overall = courseworkAvg;
 
   const letterGrade =
     overall >= 90
@@ -576,16 +607,9 @@ router.get("/reasoning/grades", async (_req, res) => {
         {
           key: "coursework",
           label: "Coursework",
-          weightPercent: COURSEWORK_WEIGHT,
-          earnedPercent: Math.round(courseworkEarned * 10) / 10,
+          weightPercent: 100,
+          earnedPercent: Math.round(courseworkAvg * 10) / 10,
           detail: `Average ${Math.round(courseworkAvg)}% across ${coursework.length} assignments`,
-        },
-        {
-          key: "diagnostics",
-          label: "Diagnostic assessments",
-          weightPercent: DIAGNOSTIC_WEIGHT,
-          earnedPercent: Math.round(diagnosticsEarned * 10) / 10,
-          detail: `${passedCount} of ${reasoning.length} assessments passed`,
         },
       ],
       coursework,

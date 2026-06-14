@@ -1,42 +1,44 @@
 import { sql } from "drizzle-orm";
-import {
-  db,
-  diagnosticAssessmentsTable,
-  diagnosticItemsTable,
-} from "@workspace/db";
+import { db, diagnosticAssessmentsTable } from "@workspace/db";
 import { logger } from "./logger";
 import { DIAGNOSTIC_SEED } from "./diagnosticContent";
 
-// Rotate an options array by a random offset so the (originally-first) correct
-// option lands at a random index, returning the new array plus the new correct
-// index. This keeps authoring simple (write the correct option first) while
-// avoiding both an "always A" pattern and any deterministic coupling between an
-// item's public `position` and its hidden correct index.
-function rotateOptions(options: string[]): {
-  options: string[];
-  correctIndex: number;
-} {
-  const n = options.length;
-  const off = Math.floor(Math.random() * n);
-  const rotated = new Array<string>(n);
-  for (let k = 0; k < n; k++) {
-    rotated[(k + off) % n] = options[k]!;
-  }
-  return { options: rotated, correctIndex: off };
+// A stable signature of the desired assessment shells. If the rows currently in
+// the database don't match it, we replace them (self-healing) so an existing or
+// previously-seeded database picks up the new structure. No template items are
+// seeded any more — every attempt's items are generated fresh at runtime.
+function desiredSignature(): string {
+  return JSON.stringify(
+    DIAGNOSTIC_SEED.map((a, i) => [a.instrument, a.phase, a.title, i]),
+  );
+}
+
+async function existingSignature(): Promise<string> {
+  const rows = await db
+    .select({
+      instrument: diagnosticAssessmentsTable.instrument,
+      phase: diagnosticAssessmentsTable.phase,
+      title: diagnosticAssessmentsTable.title,
+      position: diagnosticAssessmentsTable.position,
+    })
+    .from(diagnosticAssessmentsTable)
+    .orderBy(diagnosticAssessmentsTable.position);
+  return JSON.stringify(
+    rows.map((r) => [r.instrument, r.phase, r.title, r.position]),
+  );
 }
 
 export async function seedDiagnosticsIfEmpty(): Promise<void> {
-  const existing = await db.execute(
-    sql`select count(*)::int as n from diagnostic_assessments`,
-  );
-  const row = (existing.rows[0] ?? {}) as { n?: number };
-  if ((row.n ?? 0) > 0) {
-    logger.info("Diagnostic seed: already populated, skipping");
+  if ((await existingSignature()) === desiredSignature()) {
+    logger.info("Diagnostic seed: up to date, skipping");
     return;
   }
-  logger.info("Diagnostic seed: populating reasoning assessments");
 
-  let itemTotal = 0;
+  // Replace any prior assessments (cascades to items/attempts/responses). This
+  // removes the legacy ethics/critical assessments and reseeds the new shells.
+  logger.info("Diagnostic seed: (re)seeding assessment shells");
+  await db.execute(sql`delete from diagnostic_assessments`);
+
   for (let i = 0; i < DIAGNOSTIC_SEED.length; i++) {
     const a = DIAGNOSTIC_SEED[i]!;
     const [inserted] = await db
@@ -51,45 +53,7 @@ export async function seedDiagnosticsIfEmpty(): Promise<void> {
       })
       .returning();
     if (!inserted) throw new Error(`Failed to insert assessment ${a.title}`);
-
-    let pos = 0;
-    for (const d of a.dilemmas ?? []) {
-      await db.insert(diagnosticItemsTable).values({
-        assessmentId: inserted.id,
-        position: pos,
-        type: "dilemma",
-        prompt: d.prompt,
-        payload: {
-          decisionOptions: d.decisionOptions,
-          considerations: d.considerations.map((c) => c.text),
-          rankCount: d.rankCount,
-        },
-        scoring: {
-          stages: d.considerations.map((c) => c.stage),
-          rankCount: d.rankCount,
-        },
-      });
-      pos += 1;
-      itemTotal += 1;
-    }
-
-    for (const m of a.mcqs ?? []) {
-      const { options, correctIndex } = rotateOptions(m.options);
-      await db.insert(diagnosticItemsTable).values({
-        assessmentId: inserted.id,
-        position: pos,
-        type: "mcq",
-        prompt: m.prompt,
-        payload: { options },
-        scoring: { correctIndex, skillArea: m.skillArea },
-      });
-      pos += 1;
-      itemTotal += 1;
-    }
   }
 
-  logger.info(
-    { assessments: DIAGNOSTIC_SEED.length, items: itemTotal },
-    "Diagnostic seed complete",
-  );
+  logger.info({ assessments: DIAGNOSTIC_SEED.length }, "Diagnostic seed complete");
 }

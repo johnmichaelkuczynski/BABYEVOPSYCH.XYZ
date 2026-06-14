@@ -23,19 +23,4 @@ export interface ReasoningResponseInput {
      * @nullable
      */
   note?: string | null;
-  /**
-     * dilemma — chosen decision index.
-     * @nullable
-     */
-  decisionIndex?: number | null;
-  /**
-     * dilemma — importance rating (0-4) per consideration, by index.
-     * @nullable
-     */
-  ratings?: number[] | null;
-  /**
-     * dilemma — consideration indices ranked most-important first.
-     * @nullable
-     */
-  ranking?: number[] | null;
 }
