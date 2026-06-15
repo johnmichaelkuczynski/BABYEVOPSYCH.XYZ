@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetLecture,
+  useGetWeek,
   useRewriteLecture,
   useClearLectureRewrite,
   useAskTutor,
@@ -20,7 +21,7 @@ import { AnswerInput } from "@/components/AnswerInput";
 import { MathKeyboard, insertAtTextareaCursor } from "@/components/MathKeyboard";
 import { StarterQuestionCard } from "@/components/StarterQuestionCard";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare, Sparkles, Send, X, RefreshCw, CheckCircle2, XCircle, Wand2, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, MessageSquare, Sparkles, Send, X, RefreshCw, CheckCircle2, XCircle, Wand2, RotateCcw } from "lucide-react";
 
 type ChatMsg = { role: "user" | "tutor"; text: string };
 
@@ -28,6 +29,23 @@ export default function LectureView() {
   const params = useParams();
   const lectureId = Number(params.lectureId);
   const { data: lecture, isLoading } = useGetLecture(lectureId);
+
+  // Sibling lectures (same unit, in display order) for prev/next navigation.
+  const { data: week } = useGetWeek(lecture?.weekNumber ?? 0, {
+    query: {
+      enabled: lecture?.weekNumber != null,
+      queryKey: ["week", lecture?.weekNumber],
+    },
+  });
+  const { prevLecture, nextLecture } = useMemo(() => {
+    const list = week?.lectures ?? [];
+    const idx = list.findIndex((l) => l.id === lectureId);
+    if (idx < 0) return { prevLecture: null, nextLecture: null };
+    return {
+      prevLecture: idx > 0 ? list[idx - 1] : null,
+      nextLecture: idx < list.length - 1 ? list[idx + 1] : null,
+    };
+  }, [week?.lectures, lectureId]);
 
   // shared selected-text state (used by both Tutor and Practice)
   const [selectedText, setSelectedText] = useState("");
@@ -387,6 +405,51 @@ export default function LectureView() {
                   Tip: highlight any passage above to ask the tutor about it, or to generate practice problems specifically on what you selected.
                 </div>
               </div>
+
+              {(prevLecture || nextLecture) && (
+                <nav className="mt-6 flex items-stretch gap-3">
+                  {prevLecture ? (
+                    <Link href={`/lectures/${prevLecture.id}`} className="flex-1">
+                      <div
+                        className="group h-full rounded-lg border border-border bg-card hover:border-primary/50 transition-colors p-4 cursor-pointer flex items-center gap-3"
+                        data-testid="link-prev-lecture"
+                      >
+                        <ArrowLeft className="w-4 h-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+                        <div className="min-w-0">
+                          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Previous
+                          </div>
+                          <div className="font-medium text-sm text-foreground truncate">
+                            {prevLecture.title}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
+                  {nextLecture ? (
+                    <Link href={`/lectures/${nextLecture.id}`} className="flex-1">
+                      <div
+                        className="group h-full rounded-lg border border-border bg-card hover:border-primary/50 transition-colors p-4 cursor-pointer flex items-center justify-end gap-3 text-right"
+                        data-testid="link-next-lecture"
+                      >
+                        <div className="min-w-0">
+                          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                            Next
+                          </div>
+                          <div className="font-medium text-sm text-foreground truncate">
+                            {nextLecture.title}
+                          </div>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0 group-hover:text-primary transition-colors" />
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex-1" />
+                  )}
+                </nav>
+              )}
             </article>
           ) : (
             <div className="mt-8">Lecture not found.</div>

@@ -9,4 +9,4 @@
 - [Orval request-body naming](orval-request-body-naming.md) — name OpenAPI requestBody component schemas `*Input`, never `<OperationId>Body`, or the zod barrel collides with orval's generated operation-body symbol.
 - [Course design mandates](course-design-mandates.md) — math keyboard required on ALL inputs incl. tutor (even no-math course); every question (incl. adaptive drill) must be scenario-reasoning, never one-word/recitation.
 - [Reasoning attempt length](reasoning-attempt-length.md) — per-attempt short/medium/long = 4/8/14 questions, same for both diagnostic kinds.
-- [Diagnostic model](diagnostic-format-options.md) — 2 kinds (subject|reasoning) × 4 phases (before/during1/during2/after)=8 rows; pick mc/hybrid/written per attempt; never repeat questions (fresh + exclude priors); NEVER affect grade (coursework=100%); retake+format starts fresh; render written "Partial"; UI says "Completed" not "Passed".
+- [Diagnostic model](diagnostic-format-options.md) — 2 kinds (subject|reasoning) × 4 phases = 8 rows; mc/hybrid/written per attempt; never repeat & never affect grade (coursework=100%).
