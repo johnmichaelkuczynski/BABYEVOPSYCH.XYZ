@@ -60,7 +60,7 @@ export default function Landing() {
             <Search className="w-4 h-4" />
           </div>
           <span className="font-serif font-semibold text-lg tracking-tight">
-            Evolutionary Psychology for Children
+            Basic Evolutionary Psychology
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -87,15 +87,16 @@ export default function Landing() {
         <section className="max-w-4xl mx-auto px-6 pt-20 pb-16 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium mb-6">
             <BarChart3 className="w-3.5 h-3.5" />
-            A friendly, one-unit intro to evolutionary psychology
+            A complete ground-up introduction to evolutionary psychology
           </div>
           <h1 className="text-4xl md:text-5xl font-serif font-bold text-primary leading-tight mb-5">
-            Your mind has a history. Let's read it together.
+            Your mind has a history. Start reading it.
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-            A self-paced course that teaches, tutors, drills, and grades you —
-            evolutionary psychology in plain language, no math or coding required.
-            Perfect for curious students and grown-ups alike.
+            A self-paced course that teaches, tutors, drills, and grades you across
+            a full six-topic unit — lessons at three depths, a section-scoped AI
+            tutor, adaptive practice, and AI-graded homework, a unit test, and a
+            final, all with built-in academic-integrity checks.
           </p>
           <div className="flex items-center justify-center gap-3">
             <Link href="/sign-up">
@@ -160,7 +161,7 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-border px-6 py-6 text-center text-sm text-muted-foreground">
-        Evolutionary Psychology for Children — where the curriculum, the tutor, the grader, and the
+        Basic Evolutionary Psychology — where the curriculum, the tutor, the grader, and the
         integrity check all live in one room.
       </footer>
     </div>

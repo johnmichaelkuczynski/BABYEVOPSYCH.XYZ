@@ -6,90 +6,113 @@ export function Scene3() {
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 500),   // Tutor appears
-      setTimeout(() => setPhase(2), 4000),  // 3 lengths feature
-      setTimeout(() => setPhase(3), 7000),  // adaptive practice
+      setTimeout(() => setPhase(1), 400),   // adaptive practice
+      setTimeout(() => setPhase(2), 3800),  // AI grading
+      setTimeout(() => setPhase(3), 7000),  // integrity reveal
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
 
   return (
-    <motion.div 
-      className="absolute inset-0 flex items-center justify-center bg-bg-muted"
-      initial={{ opacity: 0, scale: 1.2 }}
+    <motion.div
+      className="absolute inset-0 flex items-center justify-center px-[8vw] bg-bg-muted"
+      initial={{ opacity: 0, scale: 1.05 }}
       animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8, filter: 'blur(10px)' }}
-      transition={{ duration: 0.8, ease: "circOut" }}
+      exit={{ opacity: 0, scale: 0.95, filter: 'blur(10px)' }}
+      transition={{ duration: 0.7 }}
     >
-      
-      {/* P1: AI Tutor */}
-      <motion.div 
-        className="absolute flex items-center gap-8"
-        initial={{ x: 0, opacity: 0 }}
+      {/* P1: Adaptive practice */}
+      <motion.div
+        className="absolute flex flex-col items-center text-center"
+        initial={{ opacity: 0, y: 30 }}
         animate={
-          phase === 1 ? { x: 0, opacity: 1, scale: 1 } : 
-          phase > 1 ? { x: '-30vw', opacity: 0.2, scale: 0.6 } : 
-          { x: 0, opacity: 0 }
+          phase === 1 ? { opacity: 1, y: 0 } :
+          phase > 1 ? { opacity: 0, y: -30 } :
+          { opacity: 0, y: 30 }
         }
-        transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+        transition={{ duration: 0.6 }}
       >
-        <img 
-          src={`${import.meta.env.BASE_URL}images/ai-tutor.png`} 
-          alt="AI Tutor" 
-          className="w-[20vw] h-[20vw] object-contain drop-shadow-2xl rounded-full bg-white p-4"
-        />
-        <div className="bg-white p-8 rounded-3xl rounded-tl-none shadow-xl border-2 border-primary/20">
-          <p className="text-[3vw] font-bold text-text-primary">Meet your AI Tutor.</p>
-          <p className="text-[2vw] text-text-secondary mt-2">Always ready to help.</p>
-        </div>
-      </motion.div>
-
-      {/* P2: Flexible reading */}
-      <motion.div 
-        className="absolute right-[10vw] flex flex-col gap-6 w-[40vw]"
-        initial={{ x: '20vw', opacity: 0 }}
-        animate={
-          phase === 2 ? { x: 0, opacity: 1 } : 
-          phase > 2 ? { y: '-20vh', opacity: 0 } : 
-          { x: '20vw', opacity: 0 }
-        }
-        transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-      >
-        <h2 className="text-[4vw] font-black text-text-primary leading-tight">Read it your way.</h2>
-        <div className="flex gap-4 items-end h-[20vh]">
-          <motion.div className="w-1/3 bg-secondary rounded-t-xl pb-4 flex items-end justify-center font-bold text-white text-[1.5vw]" 
-            initial={{ height: 0 }} animate={phase >= 2 ? { height: '40%' } : { height: 0 }} transition={{ delay: 0.1 }}>Short</motion.div>
-          <motion.div className="w-1/3 bg-primary rounded-t-xl pb-4 flex items-end justify-center font-bold text-white text-[1.5vw]" 
-            initial={{ height: 0 }} animate={phase >= 2 ? { height: '70%' } : { height: 0 }} transition={{ delay: 0.2 }}>Medium</motion.div>
-          <motion.div className="w-1/3 bg-accent rounded-t-xl pb-4 flex items-end justify-center font-bold text-white text-[1.5vw]" 
-            initial={{ height: 0 }} animate={phase >= 2 ? { height: '100%' } : { height: 0 }} transition={{ delay: 0.3 }}>Long</motion.div>
-        </div>
-      </motion.div>
-
-      {/* P3: Adaptive Practice */}
-      <motion.div 
-        className="absolute inset-0 flex flex-col items-center justify-center bg-bg-light z-20"
-        initial={{ clipPath: 'circle(0% at 50% 50%)' }}
-        animate={phase >= 3 ? { clipPath: 'circle(150% at 50% 50%)' } : { clipPath: 'circle(0% at 50% 50%)' }}
-        transition={{ duration: 1, ease: "easeInOut" }}
-      >
-        <h2 className="text-[5vw] font-black text-primary drop-shadow-md">Practice that adapts.</h2>
-        <p className="text-[2.5vw] text-text-secondary mt-4 font-bold">Gets harder when you're hot.</p>
-        <p className="text-[2.5vw] text-text-secondary mt-2 font-bold">Helps out when you're stuck.</p>
-        
-        <div className="flex gap-6 mt-10">
-          {[1,2,3,4,5].map((i) => (
-            <motion.div 
+        <h2 className="text-[3.6vw] font-black text-text-primary" style={{ fontFamily: 'var(--font-display)' }}>
+          Practice that adapts.
+        </h2>
+        <p className="text-[1.7vw] text-text-secondary mt-3">
+          Harder after a streak. Gentler after a miss.
+        </p>
+        <div className="flex gap-3 items-end h-[20vh] mt-10">
+          {[30, 45, 62, 50, 72, 88].map((h, i) => (
+            <motion.div
               key={i}
-              className="w-12 h-12 bg-accent rounded-lg"
-              initial={{ scale: 0, rotate: 0 }}
-              animate={phase >= 3 ? { scale: [0, 1.2, 1], rotate: [0, 90, 180] } : {}}
-              transition={{ delay: 0.5 + (i * 0.1), duration: 0.5 }}
+              className="w-[3vw] rounded-t-lg bg-secondary"
+              initial={{ height: 0 }}
+              animate={phase >= 1 ? { height: `${h}%` } : { height: 0 }}
+              transition={{ delay: 0.2 + i * 0.12, type: 'spring', stiffness: 120, damping: 14 }}
             />
           ))}
         </div>
       </motion.div>
 
+      {/* P2: AI grading */}
+      <motion.div
+        className="absolute flex flex-col items-center text-center w-[70vw]"
+        initial={{ opacity: 0, y: 30 }}
+        animate={
+          phase === 2 ? { opacity: 1, y: 0 } :
+          phase > 2 ? { opacity: 0, y: -30 } :
+          { opacity: 0, y: 30 }
+        }
+        transition={{ duration: 0.6 }}
+      >
+        <h2 className="text-[3.6vw] font-black text-text-primary" style={{ fontFamily: 'var(--font-display)' }}>
+          Graded with real feedback.
+        </h2>
+        <p className="text-[1.7vw] text-text-secondary mt-3">
+          Homework, unit tests, and a final — scored by AI.
+        </p>
+        <div className="flex gap-[2vw] mt-10">
+          {['Homework', 'Unit Test', 'Final'].map((t, i) => (
+            <motion.div
+              key={t}
+              className="bg-white rounded-2xl shadow-lg border border-black/5 px-[2.4vw] py-[2.4vh] flex flex-col items-center gap-2"
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={phase >= 2 ? { scale: 1, opacity: 1 } : { scale: 0.85, opacity: 0 }}
+              transition={{ delay: 0.3 + i * 0.15, type: 'spring', stiffness: 200, damping: 18 }}
+            >
+              <span className="flex items-center justify-center w-[3vw] h-[3vw] rounded-full bg-secondary text-white text-[1.8vw] font-black">
+                ✓
+              </span>
+              <span className="text-[1.2vw] font-semibold text-text-primary">{t}</span>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* P3: Academic integrity reveal */}
+      <motion.div
+        className="absolute inset-0 flex flex-col items-center justify-center bg-bg-dark text-white z-20 px-[8vw]"
+        initial={{ clipPath: 'circle(0% at 50% 50%)' }}
+        animate={phase >= 3 ? { clipPath: 'circle(150% at 50% 50%)' } : { clipPath: 'circle(0% at 50% 50%)' }}
+        transition={{ duration: 0.9, ease: 'easeInOut' }}
+      >
+        <h2 className="text-[3.8vw] font-black text-center" style={{ fontFamily: 'var(--font-display)' }}>
+          Built to keep it honest.
+        </h2>
+        <p className="text-[1.7vw] text-white/70 mt-5 text-center max-w-[58vw] leading-snug">
+          Every submission is screened for AI-written answers — by both text analysis and typing behavior.
+        </p>
+        <div className="flex gap-[2vw] mt-10">
+          {['Text analysis', 'Keystroke patterns'].map((t, i) => (
+            <motion.div
+              key={t}
+              className="border border-white/25 rounded-full px-[2.4vw] py-[1.4vh] text-[1.3vw] font-semibold"
+              initial={{ opacity: 0, y: 20 }}
+              animate={phase >= 3 ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+              transition={{ delay: 0.6 + i * 0.2, duration: 0.5 }}
+            >
+              {t}
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
     </motion.div>
   );
 }

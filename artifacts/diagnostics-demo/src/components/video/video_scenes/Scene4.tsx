@@ -16,10 +16,10 @@ export function Scene4() {
   }, []);
 
   const highlights = [
-    "Pass-on-submit completion",
+    "Three formats, three lengths",
     "Detailed written feedback",
-    "20% of overall course grade",
-    "Pre-assessment reasoning primers"
+    "Never affects your grade",
+    "Freshly generated every attempt"
   ];
 
   return (
@@ -34,7 +34,7 @@ export function Scene4() {
           animate={phase >= 1 ? { opacity: 1, scale: 1, rotate: 0 } : { opacity: 0, scale: 0, rotate: -45 }}
           transition={{ type: 'spring', stiffness: 200, damping: 20 }}
         >
-          ⚖️
+          🧠
         </motion.div>
         
         <div className="grid grid-cols-2 gap-x-12 gap-y-6 mt-8">
@@ -60,7 +60,7 @@ export function Scene4() {
         transition={{ duration: 0.8 }}
       >
         <div className="w-[1px] h-12 bg-white/20 mx-auto mb-6" />
-        <h1 className="text-[3vw] font-display text-white tracking-widest uppercase mb-2">Evolutionary Psychology</h1>
+        <h1 className="text-[3vw] font-display text-white tracking-widest uppercase mb-2">Basic Evolutionary Psychology</h1>
         <p className="text-[1.2vw] text-[var(--color-accent)] italic font-display text-2xl tracking-widest">Your mind has a history.</p>
       </motion.div>
     </motion.div>

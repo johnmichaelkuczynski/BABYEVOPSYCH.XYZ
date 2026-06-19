@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Evolutionary Psychology for Children"
+title = "Basic Evolutionary Psychology"
 version = "1.0.0"
 id = "artifacts/qr-course"
 router = "path"

@@ -1,22 +1,20 @@
-# YouTube Description — Evolutionary Psychology for Children
+# YouTube Description — Basic Evolutionary Psychology
 
 ## Title options
 
-- Evolutionary Psychology for Children — Your Mind Has a History
-- Evolutionary Psychology for Children | An AI-Taught Course (No Math, No Coding)
-- Why You Feel What You Feel — Evolutionary Psychology for Children
+- Basic Evolutionary Psychology — Your Mind Has a History
+- Basic Evolutionary Psychology | A Complete AI-Taught Introduction
+- Why You Feel What You Feel — Basic Evolutionary Psychology
 
 ## Short description (for the box, ~150 chars)
 
-A friendly, one-unit intro to evolutionary psychology — taught, tutored, and graded by AI. No math or coding. For curious students and grown-ups alike.
+A complete ground-up introduction to evolutionary psychology — a full six-topic unit, taught, tutored, drilled, and graded entirely by AI.
 
 ## Full description
 
-Your mind has a history. Evolutionary Psychology for Children is a free, self-paced course that explains why you feel what you feel — in plain language, with no math, coding, or prior science required.
+Basic Evolutionary Psychology is a self-paced course that delivers a complete, ground-up introduction to the discipline — a full six-topic unit taught, tutored, drilled, and graded entirely by AI. It's built for anyone starting evolutionary psychology from scratch: graduate students, researchers, and professionals who need a rigorous foundation fast.
 
-An AI tutor teaches each lesson, answers your questions about the exact paragraph you're reading, drills you with practice that adapts as you go, and grades your homework with real written feedback. Every submission is even screened for AI-authorship, so the work stays honest.
-
-One unit, six topics:
+One unit, six topics, each built around how the evolved mind actually works:
 • 1.1 The mind has a history
 • 1.2 Built to survive — cravings, fears, and beauty
 • 1.3 The logic of attraction
@@ -25,17 +23,16 @@ One unit, six topics:
 • 1.6 Why we fight — and believe
 
 What's inside:
-• Three-depth lessons — read the Short, Medium, or Long version of any topic
-• A section-scoped AI tutor that streams answers in real time
-• Adaptive practice that gets harder on a streak and easier after a miss
-• AI-graded homework, a unit test, and a final — each with written feedback
-• Two-layer AI-authorship detection on every answer you submit
+• Three-depth lessons — read the Short, Medium, or Long version of any topic, AI-rewritten while preserving the same examples and learning objectives
+• A section-scoped AI tutor that streams answers grounded in the exact passage you're reading
+• Adaptive practice that raises difficulty after a streak and eases off after a miss, with an explanation on every answer
+• AI-graded homework, a unit test, and a cumulative final — each scored with written, per-problem feedback
+• Two-layer AI-authorship detection on every submission — text analysis plus keystroke-pattern evidence
+• Diagnostic reasoning assessments and a live progress dashboard tracking mastery across every topic
 
-Perfect for middle schoolers, curious adults wanting a quick but meaningful intro, instructors exploring AI-taught coursework, and anyone who's ever wondered why our minds work the way they do.
+A full curriculum, an always-available tutor, an honest grader, and a built-in integrity check — all in one place.
 
-Start learning — no instructor, no textbook, no math.
-
-#EvolutionaryPsychology #Psychology #LearnOnline #AIeducation #ScienceForKids #HumanBehavior #FreeCourse
+#EvolutionaryPsychology #Psychology #LearnOnline #AIeducation #HumanBehavior #HigherEducation #FreeCourse
 
 ## Chapters (adjust timestamps to the final cut)
 

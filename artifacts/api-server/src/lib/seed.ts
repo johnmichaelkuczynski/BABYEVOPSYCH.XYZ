@@ -14,7 +14,7 @@ import { logger } from "./logger";
 // the value stored in seed_meta; a mismatch forces a full re-seed, so content
 // edits self-heal in every environment (including a republished production)
 // without a manual database wipe.
-const SEED_CONTENT_VERSION = "2026-06-13-evo-psych-for-children-v1";
+const SEED_CONTENT_VERSION = "2026-06-19-basic-evo-psych-v2";
 
 type SeedTopic = {
   slug: string;
@@ -26,7 +26,7 @@ type SeedTopic = {
 };
 
 const TOPICS: SeedTopic[] = [
-  // Unit 1 — Evolutionary Psychology for Everyone
+  // Unit 1 — Basic Evolutionary Psychology
   {
     slug: "mind-has-history",
     title: "The mind has a history",
@@ -43,7 +43,7 @@ Your heart has a job: pump blood. Your stomach has a job: digest food. Your **br
 
 ## Not a blank slate
 
-People used to think a baby's mind was a totally empty page, and that everything we feel and think is just written on later by the world. But that isn't quite right. A newborn already knows how to suck, cry, and grip a finger. A baby will stare longer at a face than at a random pattern. Nobody taught them that. They came **pre-loaded** — born ready for a few important things, the way a new phone comes with a few apps already installed.
+People used to think a infant's mind was a totally empty page, and that everything we feel and think is just written on later by the world. But that isn't quite right. A newborn already knows how to suck, cry, and grip a finger. A infant will stare longer at a face than at a random pattern. Nobody taught them that. They came **pre-loaded** — born ready for a few important things, the way a new phone comes with a few apps already installed.
 
 ## Feelings are tools, not accidents
 
@@ -55,7 +55,7 @@ Long ago, tiny differences between people mattered. Someone who felt afraid of a
 
 ## In the real world
 
-Babies all over the world, in every country, start to fear strangers at about the same age — around eight months old. No parent teaches this; it shows up on its own, right around the time a crawling baby could wander off into danger. That timing is a clue. A feeling that appears on schedule, everywhere, without being taught, looks a lot like something the mind came **pre-loaded** with — a small piece of history you can actually watch happen.`,
+Infants all over the world, in every country, start to fear strangers at about the same age — around eight months old. No parent teaches this; it shows up on its own, right around the time a crawling infant could wander off into danger. That timing is a clue. A feeling that appears on schedule, everywhere, without being taught, looks a lot like something the mind came **pre-loaded** with — a small piece of history you can actually watch happen.`,
   },
   {
     slug: "built-to-survive",
@@ -85,7 +85,7 @@ Notice the pattern in all three examples: a reaction that was smart long ago can
 
 ## In the real world
 
-Scientists ran a clever test with babies and a glass floor — a clear, strong surface with a deep drop visible underneath, called a "visual cliff." Even crawling babies who had never fallen far would stop at the edge and refuse to crawl over the drop, no matter how much their parents waved them on. Nobody taught them to fear heights. A fall was deadly to our ancestors for millions of years, so the caution comes **built in** — survival wisdom showing up before a baby could ever learn it the hard way.`,
+Scientists ran a clever test with infants and a glass floor — a clear, strong surface with a deep drop visible underneath, called a "visual cliff." Even crawling infants who had never fallen far would stop at the edge and refuse to crawl over the drop, no matter how much their parents waved them on. Nobody taught them to fear heights. A fall was deadly to our ancestors for millions of years, so the caution comes **built in** — survival wisdom showing up before a infant could ever learn it the hard way.`,
   },
   {
     slug: "logic-of-attraction",
@@ -129,7 +129,7 @@ Finding someone is only half the story. The evolved mind also has tools for **bo
 
 ## Love as glue
 
-Raising a human child is a huge, slow job — human babies are helpless for years, far longer than the young of most animals. A child does much better when *two* caring adults stick together to help. **Love** — that strong pull to stay close to one special person — works like glue that keeps partners together through that long job. A feeling that kept caregivers working as a team would have helped their children survive, so the feeling got passed on.
+Raising a human child is a huge, slow job — human infants are helpless for years, far longer than the young of most animals. A child does much better when *two* caring adults stick together to help. **Love** — that strong pull to stay close to one special person — works like glue that keeps partners together through that long job. A feeling that kept caregivers working as a team would have helped their children survive, so the feeling got passed on.
 
 ## Jealousy as an alarm
 
@@ -242,9 +242,9 @@ const ASSIGNMENTS: SeedAssignment[] = [
       {
         topicSlug: "mind-has-history",
         prompt:
-          "Some people say a baby's mind is a totally blank page that the world fills in later. Use one example to explain why evolutionary psychology says the mind comes 'pre-loaded' instead. (3–5 sentences.)",
+          "Some people say a infant's mind is a totally blank page that the world fills in later. Use one example to explain why evolutionary psychology says the mind comes 'pre-loaded' instead. (3–5 sentences.)",
         correctAnswer:
-          "A blank-page view says babies start with nothing and learn everything from scratch, but newborns clearly arrive already able to do important things. For example, a newborn knows how to suck and grip a finger, and babies will stare longer at a face than at a random pattern even though no one taught them to. Those abilities show up too early and too reliably to have been learned. So the mind comes 'pre-loaded' — born ready for a few important things — the way a new phone arrives with some apps already installed.",
+          "A blank-page view says infants start with nothing and learn everything from scratch, but newborns clearly arrive already able to do important things. For example, a newborn knows how to suck and grip a finger, and infants will stare longer at a face than at a random pattern even though no one taught them to. Those abilities show up too early and too reliably to have been learned. So the mind comes 'pre-loaded' — born ready for a few important things — the way a new phone arrives with some apps already installed.",
         explanation:
           "Full credit: contrasts the blank-slate view with the pre-loaded view and gives a concrete inborn ability (e.g. grasping, face preference, fearing strangers) that appears without being taught.",
       },
@@ -285,7 +285,7 @@ const ASSIGNMENTS: SeedAssignment[] = [
     isTimed: false,
     timeLimitMinutes: null,
     instructions:
-      "Untimed practice covering sections 1.4–1.6. Answer each question in a few sentences (about 3–5) in your own words. No math is required — explain your reasoning. One-word answers won't receive credit.",
+      "Untimed practice covering sections 1.4–1.6. Answer each question in a few sentences (about 3–5) in your own words. Explain your reasoning. One-word answers won't receive credit.",
     problems: [
       {
         topicSlug: "love-and-jealousy",
@@ -328,12 +328,12 @@ const ASSIGNMENTS: SeedAssignment[] = [
   },
   {
     kind: "test",
-    title: "Unit Test — Evolutionary Psychology for Everyone",
+    title: "Unit Test — Basic Evolutionary Psychology",
     weekNumber: 1,
     isTimed: true,
     timeLimitMinutes: 30,
     instructions:
-      "Timed. 30 minutes. Covers sections 1.1–1.6. Answer each question in a few sentences (about 4–6) in your own words. No math is required. Pasting is disabled; keystrokes are screened for AI use.",
+      "Timed. 30 minutes. Covers sections 1.1–1.6. Answer each question in a few sentences (about 4–6) in your own words. Pasting is disabled; keystrokes are screened for AI use.",
     problems: [
       {
         topicSlug: "mind-has-history",
@@ -393,12 +393,12 @@ const ASSIGNMENTS: SeedAssignment[] = [
   },
   {
     kind: "final",
-    title: "Final — Evolutionary Psychology for Everyone",
+    title: "Final — Basic Evolutionary Psychology",
     weekNumber: 1,
     isTimed: true,
     timeLimitMinutes: 45,
     instructions:
-      "Timed cumulative final. 45 minutes. Covers the whole course (sections 1.1–1.6). Answer each question in a paragraph (about 5–7 sentences) in your own words. No math is required. Pasting is disabled; keystrokes are screened for AI use.",
+      "Timed cumulative final. 45 minutes. Covers the whole course (sections 1.1–1.6). Answer each question in a paragraph (about 5–7 sentences) in your own words. Pasting is disabled; keystrokes are screened for AI use.",
     problems: [
       {
         topicSlug: "why-we-fight",
@@ -414,7 +414,7 @@ const ASSIGNMENTS: SeedAssignment[] = [
         prompt:
           "Some people insist that everything about how we think and feel is learned from the world around us — a totally blank slate. Using evidence from the course, argue why the mind is better described as 'pre-loaded.' Use one concrete example. (5–7 sentences.)",
         correctAnswer:
-          "A pure blank-slate view says we start with nothing and learn everything, but a lot of human reactions appear too early, too reliably, and too universally to have simply been taught. Babies arrive already able to suck, grip a finger, and prefer looking at faces over random patterns, none of which anyone trains them to do. Across the whole world, infants begin to fear strangers around eight months old — right when a crawling baby could wander into danger — without any lesson. In the 'visual cliff' experiment, even crawling babies who had never been hurt refused to cross over a visible drop, showing a caution that was clearly not learned the hard way. These reactions show up on a schedule, everywhere, which is exactly what you'd expect if the mind comes 'pre-loaded' like a phone with a few apps already installed. So the world certainly shapes us, but it writes onto a mind that already arrives prepared.",
+          "A pure blank-slate view says we start with nothing and learn everything, but a lot of human reactions appear too early, too reliably, and too universally to have simply been taught. Infants arrive already able to suck, grip a finger, and prefer looking at faces over random patterns, none of which anyone trains them to do. Across the whole world, infants begin to fear strangers around eight months old — right when a crawling infant could wander into danger — without any lesson. In the 'visual cliff' experiment, even crawling infants who had never been hurt refused to cross over a visible drop, showing a caution that was clearly not learned the hard way. These reactions show up on a schedule, everywhere, which is exactly what you'd expect if the mind comes 'pre-loaded' like a phone with a few apps already installed. So the world certainly shapes us, but it writes onto a mind that already arrives prepared.",
         explanation:
           "Full credit: argues against the blank slate using inborn, early-appearing, cross-cultural evidence (e.g. visual cliff, stranger fear, face preference) and concludes the mind comes prepared, not empty.",
       },
@@ -440,113 +440,8 @@ const ASSIGNMENTS: SeedAssignment[] = [
   },
 ];
 
-type SeedPrimer = SeedTopic;
-
-const REASONING_PRIMERS: SeedPrimer[] = [
-  {
-    slug: "reasoning-primer-ethical",
-    title: "How to reason about everyday fairness dilemmas",
-    weekNumber: 1,
-    blurb:
-      "Assessment primer: weighing what matters when honesty, fairness, and pressure collide.",
-    lectureTitle: "Primer: How to reason about everyday fairness dilemmas",
-    body: `# How to reason about everyday fairness dilemmas
-
-This short primer prepares you for the **Professional Judgment** check. That activity does not ask for the "right" answer — it asks *which reasons you give weight to* when you decide. Here is the kind of thinking it rewards.
-
-## A dilemma is a clash of reasons
-
-A real dilemma is a situation where several honest reasons pull in different directions: a promise you made, pressure to make something look better than it is, what's easiest for you, and the truth you owe to other people. Reasoning well does not mean pretending the reasons you act against don't exist — it means being honest that they had some weight, and saying why other reasons mattered more.
-
-## Three kinds of reasons
-
-When you justify a decision, the *kind* of reason you lean on matters:
-
-- **What's-easiest-for-me reasons** — what is most comfortable, safe, or rewarding for the person deciding. ("It would be awkward to say no.")
-- **Just-following-the-rule reasons** — what the rules, the grown-ups, or your role say to do. ("I was told to.") Rules keep order, but a rule can itself be unfair.
-- **Fairness reasons** — appeals to honesty, keeping promises, and the interests of *everyone affected*, the kind of reason you could defend to anyone. ("The people trusting this deserve the truth.")
-
-The check's score rises when you give the most weight to fairness reasons rather than to convenience or to "because those are the rules."
-
-## How to do this activity well
-
-1. **Decide** what the person should do.
-2. **Rate every reason** by how much it actually weighed on you — be honest, not strategic.
-3. **Rank your top few.** Ranking is where you say what *most* drove the decision.
-4. **Read each reason carefully.** Some are deliberately empty or fancy-sounding and reward nothing; ranking one of those high is a sign of careless answering.
-
-There is no penalty for the choice you make. What's measured is the *quality of the reasons* you stand behind.`,
-  },
-  {
-    slug: "reasoning-primer-critical",
-    title: "Core clear-thinking skills",
-    weekNumber: 1,
-    blurb:
-      "Assessment primer: analysis, inference, evaluation, deduction, and induction.",
-    lectureTitle: "Primer: Core clear-thinking skills",
-    body: `# Core clear-thinking skills
-
-This short primer prepares you for the **Critical Reasoning** check — a set of multiple-choice questions that test five different thinking skills. These are the same skills you use to decide what a set of facts really shows, so they matter directly for thinking clearly about why people act the way they do.
-
-## The five skills
-
-- **Analysis** — break an argument into parts: find its **point** (the conclusion), the **reasons** given for it, and any hidden assumption it leans on. Ask: "What is this trying to convince me of, and what does it take for granted?"
-- **Inference** — work out what *follows* from what you're told, and how strongly. Tell apart what *must* be true, what is *likely*, and what is only *possible*.
-- **Evaluation** — judge how much the reasons actually support the point. Notice when evidence is beside the point, a source isn't trustworthy, or a step doesn't really connect.
-- **Deduction** — reasoning where true starting facts *guarantee* the conclusion. If the starting facts are true, the conclusion can't be false. Watch for sneaky forms that only *look* airtight.
-- **Induction** — reasoning from a few examples to a *probable* general rule or prediction. Strong induction uses many fair examples; weak induction over-generalizes from too few.
-
-## A recurring trap: things that move together
-
-Most wrong answers are statements that *sound* reasonable but are **not actually backed up by what you were told**. The discipline this check rewards is the same one careful thinking about human behavior demands: keep apart what the facts **show**, what you're **assuming**, and what only *sounds* right. Two things happening together does not prove one causes the other.
-
-## How to do this activity well
-
-1. Find the **point** (conclusion) first, then the reasons.
-2. Ask which of the five skills the question is testing (a hidden-assumption question is analysis; a "what follows" question is inference or deduction; a "how good is this reasoning" question is evaluation).
-3. Pick the option that follows **only** from what you were given — not the one that merely sounds true or appealing.`,
-  },
-];
-
-// Insert any teaching-to-the-test primer lectures whose slug is not yet present.
-// Safe to run on every boot: it only adds what is missing.
-export async function seedReasoningPrimersIfMissing(): Promise<void> {
-  let added = 0;
-  for (let i = 0; i < REASONING_PRIMERS.length; i++) {
-    const t = REASONING_PRIMERS[i]!;
-    const existing = await db
-      .select({ id: topicsTable.id })
-      .from(topicsTable)
-      .where(eq(topicsTable.slug, t.slug));
-    if (existing.length > 0) continue;
-    const [inserted] = await db
-      .insert(topicsTable)
-      .values({
-        slug: t.slug,
-        title: t.title,
-        weekNumber: t.weekNumber,
-        blurb: t.blurb,
-        position: 900 + i,
-      })
-      .returning();
-    if (!inserted) throw new Error(`Failed to insert primer ${t.slug}`);
-    await db.insert(lecturesTable).values({
-      topicId: inserted.id,
-      weekNumber: t.weekNumber,
-      title: t.lectureTitle,
-      body: t.body,
-    });
-    added += 1;
-  }
-  if (added > 0) {
-    logger.info({ added }, "Reasoning primers seeded");
-  } else {
-    logger.info("Reasoning primers: already present, skipping");
-  }
-}
-
 export async function seedIfEmpty(): Promise<void> {
-  // The course was migrated to the Evolutionary Psychology for Children
+  // The course was migrated to the Basic Evolutionary Psychology
   // syllabus. Detect the marker topic; if present and the content version
   // matches, the content is current and we skip. This makes the seed
   // self-healing across environments: a database that still holds older content
@@ -595,7 +490,7 @@ export async function seedIfEmpty(): Promise<void> {
     const row = (existing.rows[0] ?? {}) as { n?: number };
     if ((row.n ?? 0) > 0) {
       logger.warn(
-        "Seed: stale course content detected — replacing with the Evolutionary Psychology for Children curriculum",
+        "Seed: stale course content detected — replacing with the Basic Evolutionary Psychology curriculum",
       );
       await tx.execute(
         sql`TRUNCATE TABLE answers, attempts, practice_attempts, practice_problems, practice_sessions, problems, assignments, lectures, topics, diagnostic_responses, diagnostic_attempts, diagnostic_items, diagnostic_assessments RESTART IDENTITY CASCADE`,

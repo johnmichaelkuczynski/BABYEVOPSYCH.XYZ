@@ -26,7 +26,7 @@ router.get("/tutor/suggestions/:lectureId", async (req, res): Promise<void> => {
   const buildUserPrompt = (extra: string) =>
     extra +
     `From the lecture below, write 6 starter questions that make the student APPLY the lecture's ideas to a CONCRETE EXAMPLE. Every question must hang on a specific case and ask the student to reason about that case.\n\n` +
-    `THE SINGLE MOST IMPORTANT RULE: every question must contain an explicit, concrete, EVERYDAY example — a specific relatable situation (e.g. "a baby who refuses to crawl across a glass floor with a drop visible underneath", "people spotting a snake in a photo faster than a flower", "a friend who borrows your snack every day but never shares anything back"). Keep examples plain-language and non-technical — no technical terms, study citations, or jargon. The question must ask the student to analyze, explain, judge, or predict something about THAT example. Reuse the lecture's own examples when it has them; otherwise invent a vivid, specific one.\n\n` +
+    `THE SINGLE MOST IMPORTANT RULE: every question must contain an explicit, concrete, EVERYDAY example — a specific relatable situation (e.g. "a infant who refuses to crawl across a glass floor with a drop visible underneath", "people spotting a snake in a photo faster than a flower", "a friend who borrows your snack every day but never shares anything back"). Keep examples plain-language and non-technical — no technical terms, study citations, or jargon. The question must ask the student to analyze, explain, judge, or predict something about THAT example. Reuse the lecture's own examples when it has them; otherwise invent a vivid, specific one.\n\n` +
     `ABSOLUTELY FORBIDDEN — never produce any of these:\n` +
     `- Questions that ask for a definition ("What is X?", "What does X mean?", "Define X").\n` +
     `- Questions that ask to distinguish or compare concepts in the abstract ("How do X and Y differ?", "What is the difference between X and Y?", "How does X relate to Y?").\n` +
@@ -35,7 +35,7 @@ router.get("/tutor/suggestions/:lectureId", async (req, res): Promise<void> => {
     `If a question does not name a concrete example and ask the student to reason about it, REWRITE it until it does.\n\n` +
     `GOOD vs BAD:\n` +
     `- BAD: "What's the difference between an adaptation and an instinct?"\n` +
-    `- GOOD: "A baby who has never fallen stops at the edge of a glass floor with a drop visible underneath — what does this suggest about whether the fear of heights is learned or built in?"\n` +
+    `- GOOD: "A infant who has never fallen stops at the edge of a glass floor with a drop visible underneath — what does this suggest about whether the fear of heights is learned or built in?"\n` +
     `- BAD: "What makes a feeling an adaptation?"\n` +
     `- GOOD: "People learn to fear snakes far faster than they learn to fear cars, even though cars hurt more people today — explain why an evolved mind would be tuned this way."\n\n` +
     `Cover several different major ideas from the reading across the 6 questions. One clear sentence each (roughly 12–28 words), in the student's own voice, no compound double-questions. Use $...$ for any inline math.\n\n` +

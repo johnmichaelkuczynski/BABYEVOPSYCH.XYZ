@@ -1,25 +1,25 @@
 @import "tailwindcss";
 
 :root {
-  --color-primary: #F59E0B; /* Amber 500 */
-  --color-secondary: #3B82F6; /* Blue 500 */
-  --color-accent: #EC4899; /* Pink 500 */
+  --color-primary: #1B294B;   /* Oxford Blue */
+  --color-secondary: #2A6F77; /* Deep Teal */
+  --color-accent: #B8863B;    /* Antique Gold */
 
-  --color-bg-light: #FFFBEB; /* Amber 50 */
-  --color-bg-dark: #1E1B4B; /* Indigo 950 */
-  --color-bg-muted: #FEF3C7; /* Amber 100 */
+  --color-bg-light: #FBFAF6;  /* Warm Parchment */
+  --color-bg-dark: #141E36;   /* Deep Navy */
+  --color-bg-muted: #EFEBE1;  /* Muted Parchment */
 
-  --color-text-primary: #1E1B4B;
-  --color-text-secondary: #4338CA;
-  --color-text-muted: #6366F1;
+  --color-text-primary: #1B294B;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748B;
   --color-text-inverse: #FFFFFF;
 
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-error: #EF4444;
+  --color-success: #2A6F77;
+  --color-warning: #B8863B;
+  --color-error: #B4452F;
 
-  --font-display: 'Nunito', sans-serif;
-  --font-body: 'Nunito', sans-serif;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
 }
 
 @theme inline {

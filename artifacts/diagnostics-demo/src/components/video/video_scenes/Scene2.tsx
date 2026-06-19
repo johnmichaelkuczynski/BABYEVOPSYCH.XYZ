@@ -35,15 +35,15 @@ export function Scene2() {
           animate={phase >= 2 ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6 }}
         >
-          <h3 className="text-[1.8vw] font-display text-[var(--color-accent)] font-semibold mb-2">Professional Judgment</h3>
-          <p className="text-[1vw] text-[var(--color-text-secondary)] mb-6 uppercase tracking-wider font-semibold opacity-70">Everyday Judgment Scenarios</p>
+          <h3 className="text-[1.8vw] font-display text-[var(--color-accent)] font-semibold mb-2">Subject-Specific</h3>
+          <p className="text-[1vw] text-[var(--color-text-secondary)] mb-6 uppercase tracking-wider font-semibold opacity-70">Evolutionary Psychology</p>
           <div className="space-y-4">
             <div className="h-[2px] w-12 bg-[var(--color-accent)]" />
             <p className="text-[1.1vw] text-[var(--color-text-primary)] font-light leading-relaxed">
-              Read relatable everyday scenarios. Rate considerations. Rank your top 4.
+              Questions generated from the course's own lecture content.
             </p>
             <p className="text-[1.1vw] text-[var(--color-text-secondary)] font-light leading-relaxed italic">
-              Surfaces how you weigh considerations (convenience vs. principle).
+              Measures how much evolutionary psychology you actually know.
             </p>
           </div>
         </motion.div>
@@ -64,15 +64,15 @@ export function Scene2() {
           animate={phase >= 4 ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
           transition={{ duration: 0.6 }}
         >
-          <h3 className="text-[1.8vw] font-display text-[var(--color-accent)] font-semibold mb-2">Critical Reasoning</h3>
-          <p className="text-[1vw] text-[var(--color-text-secondary)] mb-6 uppercase tracking-wider font-semibold opacity-70">California Critical Thinking (CCTST)</p>
+          <h3 className="text-[1.8vw] font-display text-[var(--color-accent)] font-semibold mb-2">General Reasoning</h3>
+          <p className="text-[1vw] text-[var(--color-text-secondary)] mb-6 uppercase tracking-wider font-semibold opacity-70">Genuine Reasoning</p>
           <div className="space-y-4">
             <div className="h-[2px] w-12 bg-[var(--color-accent)]" />
             <p className="text-[1.1vw] text-[var(--color-text-primary)] font-light leading-relaxed">
-              10 multiple-choice questions spanning core skills.
+              Reasoning problems generated fresh on every attempt.
             </p>
             <div className="flex flex-wrap gap-2 mt-4">
-              {['Analysis', 'Inference', 'Evaluation', 'Deduction'].map((skill, i) => (
+              {['Multiple Choice', 'Hybrid', 'Written'].map((skill, i) => (
                 <span key={skill} className="px-3 py-1 bg-[var(--color-bg-dark)] border border-white/10 rounded-full text-[0.8vw] text-[var(--color-text-secondary)]">
                   {skill}
                 </span>

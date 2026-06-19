@@ -1,6 +1,6 @@
 kind = "video"
 previewPath = "/course-promo/"
-title = "Evolutionary Psychology for Children — Promo"
+title = "Basic Evolutionary Psychology — Promo"
 version = "1.0.0"
 id = "artifacts/course-promo"
 router = "path"

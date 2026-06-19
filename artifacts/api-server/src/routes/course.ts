@@ -20,9 +20,9 @@ const router: IRouter = Router();
 
 const WEEK_TITLES: Record<number, { title: string; summary: string }> = {
   1: {
-    title: "Evolutionary Psychology for Everyone",
+    title: "Basic Evolutionary Psychology",
     summary:
-      "Why your mind has a history, how it was built to survive, the logic of attraction, love and jealousy, why we cooperate, and why we fight — and believe — all in plain language, no technical skills required.",
+      "A complete ground-up unit: why your mind has a history, how it was built to survive, the logic of attraction, love and jealousy, why we cooperate, and why we fight — and believe.",
   },
 };
 
@@ -111,7 +111,7 @@ router.get("/course/overview", async (_req, res) => {
 
   res.json(
     GetCourseOverviewResponse.parse({
-      title: "Evolutionary Psychology for Children",
+      title: "Basic Evolutionary Psychology",
       weeks,
       totals: { assignmentsCompleted, assignmentsTotal, practiceCount },
     }),

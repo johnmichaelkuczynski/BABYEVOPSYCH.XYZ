@@ -1,6 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { seedIfEmpty, seedReasoningPrimersIfMissing } from "./lib/seed";
+import { seedIfEmpty } from "./lib/seed";
 import { seedDiagnosticsIfEmpty } from "./lib/seedDiagnostics";
 
 const rawPort = process.env["PORT"];
@@ -18,7 +18,6 @@ if (Number.isNaN(port) || port <= 0) {
 }
 
 seedIfEmpty()
-  .then(() => seedReasoningPrimersIfMissing())
   .then(() => seedDiagnosticsIfEmpty())
   .catch((err) => {
     logger.error({ err }, "Seed failed");

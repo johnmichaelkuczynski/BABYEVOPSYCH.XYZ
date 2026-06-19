@@ -30,7 +30,7 @@ export function Sidebar() {
             <div className="w-8 h-8 bg-primary rounded-md flex items-center justify-center text-primary-foreground">
               <Search className="w-4 h-4" />
             </div>
-            <span className="font-serif font-semibold text-lg tracking-tight">Evolutionary Psychology for Children</span>
+            <span className="font-serif font-semibold text-lg tracking-tight">Basic Evolutionary Psychology</span>
           </div>
         </Link>
       </div>
@@ -56,7 +56,7 @@ export function Sidebar() {
       </div>
 
       <div className="p-4 border-t border-border text-xs text-muted-foreground text-center">
-        Evolutionary Psychology for Children
+        Basic Evolutionary Psychology
       </div>
     </div>
   );

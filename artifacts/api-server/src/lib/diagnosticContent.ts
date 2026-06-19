@@ -144,10 +144,10 @@ export const SUBJECT_FALLBACK: FallbackMcq[] = [
   },
   {
     prompt:
-      "Babies stopping at the edge of a 'visual cliff' even though no one taught them to fear heights is evidence that:",
+      "Infants stopping at the edge of a 'visual cliff' even though no one taught them to fear heights is evidence that:",
     options: [
       "Some useful caution comes built in rather than being learned from experience",
-      "Babies learn to fear heights only after falling many times",
+      "Infants learn to fear heights only after falling many times",
       "Heights are not actually dangerous to infants",
       "Parents always teach their infants to avoid edges",
     ],

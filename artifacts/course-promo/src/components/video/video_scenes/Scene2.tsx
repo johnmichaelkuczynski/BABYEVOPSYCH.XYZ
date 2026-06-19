@@ -6,72 +6,106 @@ export function Scene2() {
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setPhase(1), 500),   // "It's asking questions."
-      setTimeout(() => setPhase(2), 3000),  // "Noticing patterns."
-      setTimeout(() => setPhase(3), 5500),  // "Telling a story."
-      setTimeout(() => setPhase(4), 7800),  // exit
+      setTimeout(() => setPhase(1), 400),   // heading + depth card
+      setTimeout(() => setPhase(2), 3200),  // tutor card
+      setTimeout(() => setPhase(3), 5800),  // streaming answer
+      setTimeout(() => setPhase(4), 8000),  // exit
     ];
     return () => timers.forEach(t => clearTimeout(t));
   }, []);
 
   return (
-    <motion.div 
-      className="absolute inset-0 flex flex-col items-center justify-center bg-bg-light"
-      initial={{ opacity: 0, x: '100%' }}
+    <motion.div
+      className="absolute inset-0 flex flex-col items-center justify-center px-[6vw]"
+      initial={{ opacity: 0, x: '5%' }}
       animate={{ opacity: 1, x: '0%' }}
-      exit={{ opacity: 0, x: '-50%', filter: 'blur(10px)' }}
-      transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+      exit={{ opacity: 0, x: '-5%', filter: 'blur(8px)' }}
+      transition={{ duration: 0.6 }}
     >
-      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/40 via-bg-light to-bg-light" />
+      <motion.h2
+        className="text-[3.2vw] font-black text-text-primary mb-[4vh] text-center"
+        style={{ fontFamily: 'var(--font-display)' }}
+        initial={{ y: 30, opacity: 0 }}
+        animate={phase >= 1 ? { y: 0, opacity: 1 } : { y: 30, opacity: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        Read it your way. Ask anything.
+      </motion.h2>
 
-      <div className="relative z-10 w-full max-w-[80vw] h-[50vh]">
-        {/* Phase 1: Asking */}
-        <motion.div 
-          className="absolute top-0 left-0 bg-white p-8 rounded-3xl shadow-2xl border-4 border-secondary"
-          initial={{ scale: 0, opacity: 0, x: '-20vw', y: '10vh' }}
-          animate={
-            phase === 1 ? { scale: 1, opacity: 1, x: '10vw', y: '10vh', rotate: -5 } :
-            phase > 1 ? { scale: 0.8, opacity: 0.5, x: '5vw', y: '5vh', rotate: -10 } :
-            { scale: 0, opacity: 0, x: '-20vw', y: '10vh' }
-          }
-          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      <div className="flex gap-[3vw] w-full max-w-[80vw] items-stretch">
+        {/* Card 1: three reading depths */}
+        <motion.div
+          className="flex-1 bg-white rounded-2xl shadow-xl border border-black/5 p-[2.4vw]"
+          initial={{ y: 40, opacity: 0 }}
+          animate={phase >= 1 ? { y: 0, opacity: 1 } : { y: 40, opacity: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
         >
-          <h2 className="text-[4vw] font-black text-secondary">Built to survive.</h2>
-        </motion.div>
-
-        {/* Phase 2: Noticing */}
-        <motion.div 
-          className="absolute top-0 right-0 bg-white p-8 rounded-3xl shadow-2xl border-4 border-primary"
-          initial={{ scale: 0, opacity: 0, x: '20vw', y: '20vh' }}
-          animate={
-            phase === 2 ? { scale: 1, opacity: 1, x: '-10vw', y: '20vh', rotate: 5 } :
-            phase > 2 ? { scale: 0.8, opacity: 0.5, x: '-5vw', y: '15vh', rotate: 10 } :
-            { scale: 0, opacity: 0, x: '20vw', y: '20vh' }
-          }
-          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        >
-          <h2 className="text-[4vw] font-black text-primary">The logic of attraction.</h2>
-          <div className="flex gap-2 mt-4">
-            {[1, 2, 3].map(i => (
-              <motion.div key={i} className="w-6 h-6 rounded-full bg-primary" 
-                animate={{ y: [0, -10, 0] }} 
-                transition={{ duration: 1, delay: i * 0.2, repeat: Infinity }}
-              />
-            ))}
+          <p className="text-[1.6vw] font-bold text-text-primary mb-[2.5vh]">Three reading depths</p>
+          <div className="flex gap-3 items-end h-[16vh]">
+            <motion.div
+              className="flex-1 rounded-t-lg flex items-end justify-center pb-2 text-white text-[1vw] font-semibold bg-secondary"
+              initial={{ height: 0 }}
+              animate={phase >= 1 ? { height: '40%' } : { height: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+            >
+              Short
+            </motion.div>
+            <motion.div
+              className="flex-1 rounded-t-lg flex items-end justify-center pb-2 text-white text-[1vw] font-semibold bg-primary"
+              initial={{ height: 0 }}
+              animate={phase >= 1 ? { height: '70%' } : { height: 0 }}
+              transition={{ delay: 0.45, duration: 0.5 }}
+            >
+              Medium
+            </motion.div>
+            <motion.div
+              className="flex-1 rounded-t-lg flex items-end justify-center pb-2 text-white text-[1vw] font-semibold bg-accent"
+              initial={{ height: 0 }}
+              animate={phase >= 1 ? { height: '100%' } : { height: 0 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+            >
+              Long
+            </motion.div>
           </div>
+          <p className="text-[1.05vw] text-text-secondary mt-[2.5vh] leading-snug">
+            The same lesson, rewritten to the length you want.
+          </p>
         </motion.div>
 
-        {/* Phase 3: Telling */}
-        <motion.div 
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-white p-8 rounded-3xl shadow-2xl border-4 border-accent"
-          initial={{ scale: 0, opacity: 0, y: '20vh' }}
-          animate={
-            phase === 3 ? { scale: 1.2, opacity: 1, y: '0vh', rotate: 0 } :
-            { scale: 0, opacity: 0, y: '20vh' }
-          }
-          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+        {/* Card 2: section-scoped tutor */}
+        <motion.div
+          className="flex-1 bg-white rounded-2xl shadow-xl border border-black/5 p-[2.4vw] flex flex-col"
+          initial={{ y: 40, opacity: 0 }}
+          animate={phase >= 2 ? { y: 0, opacity: 1 } : { y: 40, opacity: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          <h2 className="text-[4vw] font-black text-accent text-center">Why we cooperate<br/>(and fight).</h2>
+          <p className="text-[1.6vw] font-bold text-text-primary mb-[2.5vh]">A tutor for each section</p>
+          <div className="flex flex-col gap-3 flex-1">
+            <div className="self-end bg-secondary text-white rounded-2xl rounded-br-sm px-4 py-3 text-[1vw] max-w-[82%]">
+              Why would this trait survive?
+            </div>
+            <motion.div
+              className="self-start bg-bg-muted text-text-primary rounded-2xl rounded-bl-sm px-4 py-3 text-[1vw] max-w-[88%]"
+              initial={{ opacity: 0, y: 10 }}
+              animate={phase >= 3 ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+              transition={{ duration: 0.4 }}
+            >
+              Because it gave our ancestors an edge
+              <span className="inline-flex gap-1 ml-1 align-middle">
+                {[0, 1, 2].map(d => (
+                  <motion.span
+                    key={d}
+                    className="w-[0.5vw] h-[0.5vw] rounded-full bg-text-muted inline-block"
+                    animate={phase >= 3 ? { opacity: [0.3, 1, 0.3] } : { opacity: 0.3 }}
+                    transition={{ duration: 1, repeat: Infinity, delay: d * 0.2 }}
+                  />
+                ))}
+              </span>
+            </motion.div>
+          </div>
+          <p className="text-[1.05vw] text-text-secondary mt-[2.5vh] leading-snug">
+            Answers stream in, grounded in the exact passage you're reading.
+          </p>
         </motion.div>
       </div>
     </motion.div>

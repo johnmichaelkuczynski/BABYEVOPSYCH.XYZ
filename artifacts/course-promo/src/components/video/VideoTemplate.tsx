@@ -66,7 +66,7 @@ export default function VideoTemplate({
   }, [currentSceneKey, baseSceneKey, muted]);
 
   return (
-    <div className="w-full h-screen overflow-hidden relative bg-bg-light text-text-primary" style={{ fontFamily: 'var(--font-display)' }}>
+    <div className="w-full h-screen overflow-hidden relative bg-bg-light text-text-primary" style={{ fontFamily: 'var(--font-body)' }}>
       {/* Persistent Background Layer */}
       <div className="absolute inset-0 pointer-events-none">
         <motion.div
