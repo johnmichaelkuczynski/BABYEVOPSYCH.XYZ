@@ -65,3 +65,9 @@ id = "xwqMN58ueq6FTNmUIZXDo"
 uri = "file://artifacts/course-promo/YOUTUBE_DESCRIPTION.md"
 type = "text"
 title = "YouTube Description — Basic Evolutionary Psychology"
+
+[[outputs]]
+id = "-R2LbdarvayUBRZ0juMQl"
+uri = "file://YOUTUBE VIDEO DESCRIPTION.md"
+type = "text"
+title = "YOUTUBE VIDEO DESCRIPTION"
