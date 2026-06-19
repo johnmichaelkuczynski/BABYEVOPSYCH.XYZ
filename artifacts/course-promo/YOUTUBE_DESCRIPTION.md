@@ -1,10 +1,8 @@
 # YouTube Description — Basic Evolutionary Psychology
 
-## Title options
+## Title
 
-- Basic Evolutionary Psychology — Your Mind Has a History
-- Basic Evolutionary Psychology | A Complete AI-Taught Introduction
-- Why You Feel What You Feel — Basic Evolutionary Psychology
+Basic Evolutionary Psychology — AI-Powered Course
 
 ## Short description (for the box, ~150 chars)
 
