@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/layout/Layout";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/components/AuthGate";
 import { ShieldCheck, Users } from "lucide-react";
 import {
   ResponsiveContainer,

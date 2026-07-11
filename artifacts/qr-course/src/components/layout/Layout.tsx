@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { LayoutDashboard, PenTool, BarChart3, Activity, RotateCcw, Sparkles, Scale, GraduationCap, ShieldCheck, Search, LogIn, LogOut } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAdminMode } from "@/lib/adminMode";
-import { useAuth } from "@/lib/auth";
+import { useAuth } from "@/components/AuthGate";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
