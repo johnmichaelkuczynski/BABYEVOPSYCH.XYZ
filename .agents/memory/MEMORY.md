@@ -1,5 +1,5 @@
 - [Course answer-key QC diagnostic](course-qc-diagnostic.md) — LLM key-legitimacy checks must judge against the course's own lecture text (not generic knowledge), or correct course-specific keys false-flag.
-- [No auth by mandate](no-auth-by-mandate.md) — user ordered ALL login ripped out (July 2026, "I have a plan"); app is intentionally unauthenticated; never re-add or suggest auth unless explicitly asked.
+- [Google OAuth canonical file](google-oauth-canonical.md) — the ONLY login is the user's verbatim passport-google auth.ts (NO Clerk/Replit Auth ever); login optional, app fully open; allowed-edit rules + connect-pg-simple dist/table.sql bundling gotcha.
 - [Reasoning retake variants](reasoning-retake-variants.md) — retakes generate fresh same-kind items per attempt; score against attempt's own items; grade on model-judged correctness (stored keys are fallible hints) across headline+review+persisted is_correct in lockstep.
 - [Tutor starter-question style](tutor-starter-questions.md) — lecture starter questions must ALWAYS be concrete-case application; never definition/abstract/comparison questions (user mandate).
 - [Course content reseed](course-content-reseed.md) — seeded data migrations must self-heal via a content marker + replace-in-transaction; "seed if empty" strands old content in existing/prod DBs (prod writes are read-only).

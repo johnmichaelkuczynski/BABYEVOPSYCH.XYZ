@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, PenTool, BarChart3, Activity, RotateCcw, Sparkles, Scale, GraduationCap, ShieldCheck, Search } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { LayoutDashboard, PenTool, BarChart3, Activity, RotateCcw, Sparkles, Scale, GraduationCap, ShieldCheck, Search, LogIn, LogOut } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAdminMode } from "@/lib/adminMode";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -61,12 +61,49 @@ export function Sidebar() {
   );
 }
 
+type AuthState = {
+  authenticated: boolean;
+  user: {
+    id: number;
+    username: string;
+    email: string | null;
+    displayName: string | null;
+  } | null;
+};
+
 function TopBar() {
   const [location, setLocation] = useLocation();
   const active = location.startsWith("/diagnostics");
   const [adminMode, setAdminMode] = useAdminMode();
   const qc = useQueryClient();
   const [resetting, setResetting] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  const { data: auth } = useQuery<AuthState>({
+    queryKey: ["auth-user"],
+    queryFn: async () => {
+      const res = await fetch(`${basePath}/api/auth/user`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
+    },
+  });
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    try {
+      const res = await fetch(`${basePath}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      window.location.assign(`${basePath}/`);
+    } catch (e) {
+      console.error(`Sign-out failed: ${(e as Error).message}`);
+      setSigningOut(false);
+    }
+  }
   const [expanding, setExpanding] = useState(false);
   const [expandProgress, setExpandProgress] = useState<string | null>(null);
 
@@ -183,6 +220,38 @@ function TopBar() {
         <ShieldCheck className="w-4 h-4" />
         {adminMode ? "Admin: On" : "Admin: Off"}
       </button>
+
+      <div className="mx-1 h-6 w-px bg-border" />
+
+      {auth?.authenticated && auth.user ? (
+        <>
+          <span
+            className="max-w-[180px] truncate text-sm text-muted-foreground"
+            title={auth.user.email ?? auth.user.username}
+            data-testid="text-signed-in-user"
+          >
+            {auth.user.displayName || auth.user.email || auth.user.username}
+          </span>
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium border border-border hover:bg-secondary disabled:opacity-50"
+            data-testid="button-sign-out"
+          >
+            <LogOut className="w-4 h-4" />
+            {signingOut ? "Signing out…" : "Sign out"}
+          </button>
+        </>
+      ) : (
+        <a
+          href={`${basePath}/api/auth/google`}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:opacity-90"
+          data-testid="link-sign-in-google"
+        >
+          <LogIn className="w-4 h-4" />
+          Sign in with Google
+        </a>
+      )}
     </div>
   );
 }

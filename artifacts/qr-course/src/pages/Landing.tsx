@@ -7,7 +7,10 @@ import {
   ClipboardCheck,
   ShieldCheck,
   Search,
+  LogIn,
 } from "lucide-react";
+
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const features = [
   {
@@ -64,6 +67,14 @@ export default function Landing() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href={`${basePath}/api/auth/google`}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-border hover:bg-secondary transition-colors"
+            data-testid="link-landing-sign-in"
+          >
+            <LogIn className="w-4 h-4" />
+            Sign in with Google
+          </a>
           <Link href="/dashboard">
             <button
               className="px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"

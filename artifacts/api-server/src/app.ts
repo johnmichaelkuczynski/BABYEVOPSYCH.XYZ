@@ -5,6 +5,7 @@ import path from "node:path";
 import fs from "node:fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { setupAuth } from "./auth";
 
 const app: Express = express();
 
@@ -32,6 +33,7 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+setupAuth(app);
 
 app.use("/api", router);
 
