@@ -5,7 +5,7 @@ import path from "node:path";
 import fs from "node:fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { setupAuth, isAuthenticated } from "./auth";
+import { setupAuth } from "./auth";
 
 const app: Express = express();
 
@@ -33,15 +33,11 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// All login-related code (Google OAuth, sessions, login wall, admin
+// analytics, user/visit storage) lives in one file: ./auth.ts
 setupAuth(app);
 
-// Login wall: every /api route requires a signed-in Google user.
-// Exceptions: /api/auth/* (registered inside setupAuth, above, so they match
-// first) and /api/healthz (deployment health checks must stay public).
-app.use("/api", (req, res, next) => {
-  if (req.path === "/healthz") return next();
-  return isAuthenticated(req, res, next);
-}, router);
+app.use("/api", router);
 
 // In production, serve the built qr-course frontend from the same process.
 // On Replit the deploy sidecar handles this; on Render (single web service)
