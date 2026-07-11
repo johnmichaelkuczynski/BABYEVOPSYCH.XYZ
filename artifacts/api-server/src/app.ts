@@ -5,7 +5,7 @@ import path from "node:path";
 import fs from "node:fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { setupAuth } from "./auth";
+import { setupAuth, isAuthenticated } from "./auth";
 
 const app: Express = express();
 
@@ -35,6 +35,13 @@ app.use(express.urlencoded({ extended: true }));
 
 setupAuth(app);
 
+// Require Google sign-in for all course/app API routes. Auth endpoints
+// (/api/auth/*) stay public because setupAuth registered them earlier, and
+// /api/healthz stays public for deployment health checks.
+app.use("/api", (req, res, next) => {
+  if (req.path === "/healthz") return next();
+  return isAuthenticated(req, res, next);
+});
 app.use("/api", router);
 
 // In production, serve the built qr-course frontend from the same process.

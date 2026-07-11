@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { LayoutDashboard, PenTool, BarChart3, Activity, RotateCcw, Sparkles, Scale, GraduationCap, ShieldCheck, Search, LogIn, LogOut } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAdminMode } from "@/lib/adminMode";
+import { useAuth } from "@/lib/auth";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export function Sidebar() {
   const [location] = useLocation();
   const [adminMode] = useAdminMode();
+  const { isAdmin } = useAuth();
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -18,6 +20,9 @@ export function Sidebar() {
     { href: "/analytics", label: "Analytics", icon: BarChart3 },
     ...(adminMode
       ? [{ href: "/admin", label: "Administrator", icon: ShieldCheck }]
+      : []),
+    ...(isAdmin
+      ? [{ href: "/administrative", label: "Administrative", icon: ShieldCheck }]
       : []),
   ];
 
@@ -61,16 +66,6 @@ export function Sidebar() {
   );
 }
 
-type AuthState = {
-  authenticated: boolean;
-  user: {
-    id: number;
-    username: string;
-    email: string | null;
-    displayName: string | null;
-  } | null;
-};
-
 function TopBar() {
   const [location, setLocation] = useLocation();
   const active = location.startsWith("/diagnostics");
@@ -79,16 +74,7 @@ function TopBar() {
   const [resetting, setResetting] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const { data: auth } = useQuery<AuthState>({
-    queryKey: ["auth-user"],
-    queryFn: async () => {
-      const res = await fetch(`${basePath}/api/auth/user`, {
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    },
-  });
+  const { auth } = useAuth();
 
   async function handleSignOut() {
     setSigningOut(true);

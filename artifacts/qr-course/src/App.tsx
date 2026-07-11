@@ -18,6 +18,8 @@ import Reasoning from "@/pages/Reasoning";
 import ReasoningRunner from "@/pages/ReasoningRunner";
 import Grades from "@/pages/Grades";
 import AdminMode from "@/pages/AdminMode";
+import Administrative from "@/pages/Administrative";
+import { AuthGate } from "@/components/AuthGate";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -36,6 +38,7 @@ function Router() {
       <Route path="/reasoning/:id" component={ReasoningRunner} />
       <Route path="/grades" component={Grades} />
       <Route path="/admin" component={AdminMode} />
+      <Route path="/administrative" component={Administrative} />
       <Route path="/diagnostics" component={Diagnostics} />
       <Route path="/weeks/:weekNumber" component={WeekView} />
       <Route path="/lectures/:lectureId" component={LectureView} />
@@ -50,7 +53,9 @@ function App() {
     <WouterRouter base={basePath}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
-          <Router />
+          <AuthGate>
+            <Router />
+          </AuthGate>
           <Toaster />
         </TooltipProvider>
       </QueryClientProvider>
