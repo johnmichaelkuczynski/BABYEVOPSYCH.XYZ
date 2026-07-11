@@ -3,7 +3,7 @@ name: Google OAuth canonical auth file
 description: The app's only login is the user's canonical passport-google-oauth20 auth.ts; rules for touching it and bundling gotcha.
 ---
 
-The user supplied a canonical `server/auth.ts` (passport-google-oauth20 + express-session + connect-pg-simple) and mandated it be used VERBATIM — only app-specific values may change. NO Clerk, NO Replit Auth, EVER. Login is REQUIRED (user mandate, July 2026): unauthenticated visitors must not see or use ANY part of the site — frontend AuthGate shows only a sign-in card, and the entire /api router is gated behind isAuthenticated (exceptions: /api/auth/* and /api/healthz). An owner-only "Administrative" page (admin email match; server isAdmin guard) shows login history + day/week/month/year/all-time graphs.
+The user supplied a canonical `server/auth.ts` (passport-google-oauth20 + express-session + connect-pg-simple) and mandated it be used VERBATIM — only app-specific values may change. NO Clerk, NO Replit Auth, EVER. Login is optional: the app stays fully open, no route guards.
 
 **Why:** Explicit repeated user mandate ("do NOT rewrite/regenerate/replace"). Prior Clerk system was ordered destroyed.
 

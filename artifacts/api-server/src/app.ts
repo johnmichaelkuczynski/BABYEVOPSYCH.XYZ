@@ -33,8 +33,6 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// All login-related code (Google OAuth, sessions, login wall, admin
-// analytics, user/visit storage) lives in one file: ./auth.ts
 setupAuth(app);
 
 app.use("/api", router);
