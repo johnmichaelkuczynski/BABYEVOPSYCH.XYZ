@@ -1,7 +1,6 @@
 - [Course answer-key QC diagnostic](course-qc-diagnostic.md) — LLM key-legitimacy checks must judge against the course's own lecture text (not generic knowledge), or correct course-specific keys false-flag.
-- [Clerk + wouter auth](clerk-wouter-auth.md) — protected-route HOC for wouter must use ComponentType<any> (not Record-constrained); base path `/` stays a public landing, dashboard lives at `/dashboard`.
+- [No auth by mandate](no-auth-by-mandate.md) — user ordered ALL login ripped out (July 2026, "I have a plan"); app is intentionally unauthenticated; never re-add or suggest auth unless explicitly asked.
 - [Reasoning retake variants](reasoning-retake-variants.md) — retakes generate fresh same-kind items per attempt; score against attempt's own items; grade on model-judged correctness (stored keys are fallible hints) across headline+review+persisted is_correct in lockstep.
-- [API auth model](api-auth-model.md) — single-user app: API has NO per-route server authz; Clerk gating is frontend-only. "Admin mode" + skipDetection are intentionally client-side flags, not a trust boundary.
 - [Tutor starter-question style](tutor-starter-questions.md) — lecture starter questions must ALWAYS be concrete-case application; never definition/abstract/comparison questions (user mandate).
 - [Course content reseed](course-content-reseed.md) — seeded data migrations must self-heal via a content marker + replace-in-transaction; "seed if empty" strands old content in existing/prod DBs (prod writes are read-only).
 - [DATABASE_URL override](database-url-override.md) — app DB resolves to platform `helium/heliumdb`, which overrides a user-set DATABASE_URL secret; checkDatabase() can report "not provisioned" while the app still has a working DB.
