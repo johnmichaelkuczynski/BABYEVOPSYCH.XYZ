@@ -8,9 +8,8 @@ import {
   ShieldCheck,
   Search,
   LogIn,
-  FileDown,
-  FileText,
 } from "lucide-react";
+import { TopicsList } from "@/components/TopicsList";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -47,78 +46,6 @@ const features = [
   },
 ];
 
-// The full curriculum, listed point-blank: every topic with the sections
-// actually taught in its lecture (mirrors the seeded course content).
-const curriculum = [
-  {
-    n: "TOPIC 1.1",
-    title: "The mind has a history",
-    sections: [
-      "The brain is an organ with a job",
-      "Not a blank slate",
-      "Feelings are tools, not accidents",
-      'Why "shaped over time"?',
-      "In the real world",
-    ],
-  },
-  {
-    n: "TOPIC 1.2",
-    title: "Built to survive",
-    sections: [
-      "Why sweet and fatty food tastes amazing",
-      "Fearing the right things (and the wrong ones)",
-      "Why certain places feel beautiful",
-      "The mind can be a little out of date",
-      "In the real world",
-    ],
-  },
-  {
-    n: "TOPIC 1.3",
-    title: "The logic of attraction",
-    sections: [
-      "Beauty is really a bunch of clues",
-      "Why faces matter so much",
-      "It's not only looks",
-      "Different clues for different jobs",
-      "In the real world",
-    ],
-  },
-  {
-    n: "TOPIC 1.4",
-    title: "Love, jealousy, and keeping a mate",
-    sections: [
-      "Love as glue",
-      "Jealousy as an alarm",
-      "Tools can misfire",
-      "Strategies, not scripts",
-      "In the real world",
-    ],
-  },
-  {
-    n: "TOPIC 1.5",
-    title: "Why we cooperate",
-    sections: [
-      "Helping family first",
-      'Taking turns: "I help you, you help me"',
-      "Why fairness and gratitude feel so strong",
-      "Friendship and status",
-      "In the real world",
-    ],
-  },
-  {
-    n: "TOPIC 1.6",
-    title: "Why we fight — and believe",
-    sections: [
-      "Us and them",
-      "Status and conflict",
-      "Where culture comes from",
-      "Even religion?",
-      "The biggest questions stay open",
-      "In the real world",
-    ],
-  },
-];
-
 export default function Landing() {
   return (
     <div className="min-h-[100dvh] bg-background text-foreground flex flex-col">
@@ -151,7 +78,9 @@ export default function Landing() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 flex">
+        <TopicsList />
+        <div className="flex-1 min-w-0">
         <section className="max-w-4xl mx-auto px-6 pt-20 pb-16 text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium mb-6">
             <BarChart3 className="w-3.5 h-3.5" />
@@ -195,65 +124,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="max-w-6xl mx-auto px-6 pb-24">
-          <div className="rounded-xl border border-border bg-card p-8">
-            <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
-              <div>
-                <h2 className="font-serif font-semibold text-2xl mb-1">
-                  Topics Covered in This Course
-                </h2>
-                <p className="text-muted-foreground">
-                  Week 1 — one unit, six topics, from why your mind has a
-                  history to why we fight and believe.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <a
-                  href={`${basePath}/api/course/download.pdf`}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                  data-testid="link-download-pdf"
-                >
-                  <FileDown className="w-4 h-4" />
-                  Download Course (PDF)
-                </a>
-                <a
-                  href={`${basePath}/api/course/download.txt`}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium border border-border hover:bg-secondary transition-colors"
-                  data-testid="link-download-txt"
-                >
-                  <FileText className="w-4 h-4" />
-                  TXT
-                </a>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-10">
-              {curriculum.map((t) => (
-                <div key={t.n}>
-                  <div className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">
-                    {t.n}
-                  </div>
-                  <div className="font-semibold mb-3">{t.title}</div>
-                  <ul className="space-y-2">
-                    {t.sections.map((s) => (
-                      <li
-                        key={s}
-                        className="text-sm text-muted-foreground leading-snug"
-                      >
-                        {s}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-
-            <div className="border-t border-border mt-10 pt-5 text-sm text-muted-foreground">
-              The download includes the short version of every lecture plus
-              practice homework and exam questions.
-            </div>
-          </div>
-        </section>
+        </div>
       </main>
 
       <footer className="border-t border-border px-6 py-6 text-center text-sm text-muted-foreground">
