@@ -23,6 +23,13 @@ type VisitsResponse = {
     lastMonth: number;
     lastYear: number;
   };
+  uniqueVisitors?: {
+    allTime: number;
+    last24Hours: number;
+    last7Days: number;
+    lastMonth: number;
+    lastYear: number;
+  };
   series: {
     last24Hours: SeriesPoint[];
     lastMonth: SeriesPoint[];
@@ -147,6 +154,23 @@ export default function Administrative() {
 
         {data && (
           <>
+            {data.uniqueVisitors && (
+              <div className="mb-8">
+                <h2 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                  Unique visitors (every distinct browser that opened the site,
+                  signed in or not)
+                </h2>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <StatCard label="Visitors last day" value={data.uniqueVisitors.last24Hours} />
+                  <StatCard label="Visitors last week" value={data.uniqueVisitors.last7Days} />
+                  <StatCard label="Visitors last month" value={data.uniqueVisitors.lastMonth} />
+                  <StatCard label="Visitors last year" value={data.uniqueVisitors.lastYear} />
+                  <StatCard label="Visitors all time" value={data.uniqueVisitors.allTime} />
+                </div>
+              </div>
+            )}
+            <h2 className="text-sm font-medium mb-3">Google logins</h2>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
               <StatCard label="Last day" value={data.stats.last24Hours} />
               <StatCard label="Last week" value={lastWeekCount} />

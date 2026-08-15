@@ -8,6 +8,8 @@ import {
   ShieldCheck,
   Search,
   LogIn,
+  FileDown,
+  FileText,
 } from "lucide-react";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -130,10 +132,13 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="max-w-4xl mx-auto px-6 pb-24">
-          <h2 className="text-center font-serif font-semibold text-xl mb-6">
-            The Curriculum
+        <section className="max-w-4xl mx-auto px-6 pb-16">
+          <h2 className="text-center font-serif font-semibold text-2xl mb-2">
+            Topics Covered in This Course
           </h2>
+          <p className="text-center text-muted-foreground mb-6">
+            One unit, six topics — this is exactly what you will learn.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {topics.map((t) => (
               <div
@@ -151,6 +156,36 @@ export default function Landing() {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="max-w-4xl mx-auto px-6 pb-24">
+          <div className="rounded-xl border border-border bg-card p-8 text-center">
+            <h2 className="font-serif font-semibold text-2xl mb-2">
+              Download the Course
+            </h2>
+            <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
+              Get the full set of lectures (short versions) plus sample
+              homework and exam questions — free, no sign-in needed.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <a
+                href={`${basePath}/api/course/download.pdf`}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-md text-base font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                data-testid="link-download-pdf"
+              >
+                <FileDown className="w-5 h-5" />
+                Download as PDF
+              </a>
+              <a
+                href={`${basePath}/api/course/download.txt`}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-md text-base font-medium border border-border hover:bg-secondary transition-colors"
+                data-testid="link-download-txt"
+              >
+                <FileText className="w-5 h-5" />
+                Download as TXT
+              </a>
+            </div>
           </div>
         </section>
       </main>

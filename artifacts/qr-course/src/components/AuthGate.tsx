@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { LogIn, Search } from "lucide-react";
+import { LogIn, Search, X } from "lucide-react";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -37,61 +37,97 @@ export function useAuth() {
   return { ...query, auth: query.data, isAdmin };
 }
 
-function SignInWall({ error }: { error?: boolean }) {
+const LOGIN_REQUIRED_EVENT = "bep:login-required";
+
+// Global fetch interceptor: when any API call comes back 401 with
+// code "login_required" (the free AI preview is used up), surface the
+// sign-in prompt — no matter which page or hook made the call.
+let fetchPatched = false;
+function patchFetchOnce() {
+  if (fetchPatched || typeof window === "undefined") return;
+  fetchPatched = true;
+  const orig = window.fetch.bind(window);
+  window.fetch = async (...args: Parameters<typeof fetch>) => {
+    const res = await orig(...args);
+    if (res.status === 401) {
+      try {
+        const data = await res.clone().json();
+        if (data && data.code === "login_required") {
+          window.dispatchEvent(new CustomEvent(LOGIN_REQUIRED_EVENT));
+        }
+      } catch {
+        // non-JSON 401 — ignore
+      }
+    }
+    return res;
+  };
+}
+
+function LoginPrompt({ onClose }: { onClose: () => void }) {
   return (
-    <div className="min-h-[100dvh] bg-background text-foreground flex items-center justify-center px-6">
-      <div className="w-full max-w-md text-center">
-        <div className="mx-auto w-14 h-14 bg-primary rounded-xl flex items-center justify-center text-primary-foreground mb-6">
-          <Search className="w-7 h-7" />
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center px-6">
+      <div className="relative w-full max-w-md rounded-xl bg-background border border-border p-8 text-center shadow-2xl">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 p-1.5 rounded-md text-muted-foreground hover:bg-secondary"
+          aria-label="Close"
+          data-testid="button-close-login-prompt"
+        >
+          <X className="w-4 h-4" />
+        </button>
+        <div className="mx-auto w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-primary-foreground mb-5">
+          <Search className="w-6 h-6" />
         </div>
-        <h1 className="font-serif font-semibold text-3xl tracking-tight mb-3">
-          Basic Evolutionary Psychology
-        </h1>
-        <p className="text-muted-foreground mb-8">
-          This course requires a Google account. Sign in to continue.
+        <h2 className="font-serif font-semibold text-2xl tracking-tight mb-2">
+          Enjoying the course?
+        </h2>
+        <p className="text-muted-foreground mb-6" data-testid="text-login-prompt">
+          You've used the free preview of the AI tutor, practice, and grading.
+          Sign in with Google to keep going — it's free and takes seconds.
         </p>
-        {error && (
-          <p className="text-sm text-destructive mb-4" data-testid="text-auth-error">
-            Could not verify your session. Please sign in.
-          </p>
-        )}
         <a
           href={`${basePath}/api/auth/google`}
           className="inline-flex items-center justify-center gap-2 w-full px-4 py-3 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
-          data-testid="link-signin-wall-google"
+          data-testid="link-login-prompt-google"
         >
           <LogIn className="w-4 h-4" />
           Sign in with Google
         </a>
-        <p className="text-xs text-muted-foreground mt-6">
-          You will be redirected to Google to choose an account.
+        <p className="text-xs text-muted-foreground mt-5">
+          You can keep reading the lectures without signing in.
         </p>
       </div>
     </div>
   );
 }
 
+/**
+ * The app is open to everyone — no wall. This gate only listens for the
+ * "free preview used up" signal from the server and overlays a Google
+ * sign-in prompt when it fires.
+ */
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const { auth, isLoading, isError } = useAuth();
+  const [promptOpen, setPromptOpen] = useState(false);
+  const { auth } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-[100dvh] bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-muted-foreground">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm">Checking sign-in…</span>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    patchFetchOnce();
+    const onLoginRequired = () => setPromptOpen(true);
+    window.addEventListener(LOGIN_REQUIRED_EVENT, onLoginRequired);
+    return () =>
+      window.removeEventListener(LOGIN_REQUIRED_EVENT, onLoginRequired);
+  }, []);
 
-  if (isError) {
-    return <SignInWall error />;
-  }
+  useEffect(() => {
+    if (auth?.authenticated) setPromptOpen(false);
+  }, [auth?.authenticated]);
 
-  if (!auth?.authenticated) {
-    return <SignInWall />;
-  }
-
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {promptOpen && !auth?.authenticated && (
+        <LoginPrompt onClose={() => setPromptOpen(false)} />
+      )}
+    </>
+  );
 }

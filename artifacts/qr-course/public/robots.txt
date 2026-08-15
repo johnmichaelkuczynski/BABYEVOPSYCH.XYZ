@@ -1,2 +1,7 @@
 User-agent: *
 Allow: /
+Disallow: /administrative
+Disallow: /admin
+Disallow: /diagnostics
+
+Sitemap: https://babyevopsych.xyz/sitemap.xml

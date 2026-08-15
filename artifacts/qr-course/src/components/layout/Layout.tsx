@@ -74,7 +74,7 @@ function TopBar() {
   const [resetting, setResetting] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const { auth } = useAuth();
+  const { auth, isAdmin } = useAuth();
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -159,6 +159,8 @@ function TopBar() {
 
   return (
     <div className="sticky top-0 z-10 flex items-center justify-end gap-2 px-6 py-3 border-b border-border bg-background/80 backdrop-blur">
+      {isAdmin && (
+      <>
       <button
         onClick={handleExpandLectures}
         disabled={expanding}
@@ -192,6 +194,8 @@ function TopBar() {
           Diagnostic
         </button>
       </Link>
+      </>
+      )}
 
       <button
         onClick={() => setAdminMode(!adminMode)}

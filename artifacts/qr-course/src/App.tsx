@@ -1,4 +1,5 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { useEffect } from "react";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +25,31 @@ import { AuthGate } from "@/components/AuthGate";
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const queryClient = new QueryClient();
+
+// Unique, descriptive <title> per route (SEO + usability).
+const TITLES: Array<[RegExp, string]> = [
+  [/^\/$/, "Basic Evolutionary Psychology — Free AI-Taught Online Course"],
+  [/^\/dashboard/, "Course Dashboard — Basic Evolutionary Psychology"],
+  [/^\/assignments/, "Homework, Unit Test & Final Exam — Basic Evolutionary Psychology"],
+  [/^\/reasoning/, "Reasoning Assessments — Basic Evolutionary Psychology"],
+  [/^\/grades/, "Grades — Basic Evolutionary Psychology"],
+  [/^\/analytics/, "Progress Analytics — Basic Evolutionary Psychology"],
+  [/^\/weeks\//, "Course Unit — Basic Evolutionary Psychology"],
+  [/^\/lectures\//, "Lecture — Basic Evolutionary Psychology"],
+  [/^\/practice\//, "Adaptive Practice — Basic Evolutionary Psychology"],
+  [/^\/administrative/, "Administrative — Basic Evolutionary Psychology"],
+];
+
+function TitleUpdater() {
+  const [location] = useLocation();
+  useEffect(() => {
+    const hit = TITLES.find(([re]) => re.test(location));
+    document.title = hit
+      ? hit[1]
+      : "Basic Evolutionary Psychology — Free AI-Taught Online Course";
+  }, [location]);
+  return null;
+}
 
 function Router() {
   return (
@@ -53,6 +79,7 @@ function App() {
     <WouterRouter base={basePath}>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
+          <TitleUpdater />
           <AuthGate>
             <Router />
           </AuthGate>

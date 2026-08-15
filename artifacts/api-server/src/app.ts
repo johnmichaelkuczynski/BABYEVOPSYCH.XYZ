@@ -5,7 +5,8 @@ import path from "node:path";
 import fs from "node:fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
-import { setupAuth, isAuthenticated } from "./auth";
+import { setupAuth, isAdmin } from "./auth";
+import { trackVisitor, usageGate } from "./lib/usageGate";
 
 const app: Express = express();
 
@@ -35,13 +36,16 @@ app.use(express.urlencoded({ extended: true }));
 
 setupAuth(app);
 
-// Require Google sign-in for all course/app API routes. Auth endpoints
-// (/api/auth/*) stay public because setupAuth registered them earlier, and
-// /api/healthz stays public for deployment health checks.
-app.use("/api", (req, res, next) => {
-  if (req.path === "/healthz") return next();
-  return isAuthenticated(req, res, next);
-});
+// The app is open to everyone: visitors can read the course and sample the
+// AI features. Anonymous unique visitors are tracked (owner-only analytics),
+// and after a couple of paragraphs of AI-generated output the usage gate
+// requires a Google sign-in. Admin routes stay owner-only.
+app.use("/api", trackVisitor);
+app.use("/api/admin", isAdmin);
+// Diagnostics are operator tools: /reset destroys coursework, /synthetic-run
+// and /quality-control burn heavy AI capacity. Owner-only.
+app.use("/api/diagnostics", isAdmin);
+app.use("/api", usageGate);
 app.use("/api", router);
 
 // In production, serve the built qr-course frontend from the same process.

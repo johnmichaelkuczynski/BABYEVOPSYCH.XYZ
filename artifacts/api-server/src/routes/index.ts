@@ -10,6 +10,7 @@ import analyticsRouter from "./analytics";
 import diagnosticsRouter from "./diagnostics";
 import reasoningRouter from "./reasoning";
 import adminRouter from "./admin";
+import downloadRouter from "./download";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(analyticsRouter);
 router.use(diagnosticsRouter);
 router.use(reasoningRouter);
 router.use(adminRouter);
+router.use(downloadRouter);
 
 export default router;
